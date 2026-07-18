@@ -1,0 +1,84 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "https://warehouse-api.manufactum-dev.beyondtouch.io/search?q=senf&warehouse=493024033844&limit=2",
+    "headers": {
+      "x-api-key": "[REDACTED]"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "query": "senf",
+      "result_count": 2,
+      "products": [
+        {
+          "name": "Moutarde de Dijon",
+          "sku": "218467",
+          "manufacturer": "Edmond Fallot Moutardier",
+          "price": "11,90 €",
+          "product_url": "https://www.manufactum.de/moutarde-de-dijon-a218467/",
+          "description": "250-g-Fässchen",
+          "highlights": [
+            "Zwischen Granitmühlsteinen kalt vermahlen",
+            "Würzt Braten, Kurzgebratenes und Bratwurst",
+            "Von Fallot, der letzten unabhängigen Senfmühle im Burgund"
+          ],
+          "warehouse_availability": [
+            {
+              "warehouse_id": "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+              "warehouse": "Manufactum Berlin",
+              "address": "Hardenbergstraße 4-5, 10623 Berlin",
+              "phone": "+49 30 24033844",
+              "opening_hours": {
+                "Montag": "10:00 - 20:00 Uhr",
+                "Dienstag": "10:00 - 20:00 Uhr",
+                "Mittwoch": "10:00 - 20:00 Uhr",
+                "Donnerstag": "10:00 - 20:00 Uhr",
+                "Freitag": "10:00 - 20:00 Uhr",
+                "Samstag": "10:00 - 18:00 Uhr",
+                "Sonntag": "Geschlossen"
+              },
+              "status": "AVAILABLE",
+              "status_text": "Verfügbar",
+              "stock": 7
+            }
+          ]
+        },
+        {
+          "name": "Schwerter Senf mit ganzen Körnern",
+          "sku": "27815",
+          "manufacturer": "Schwerter Senfmühle",
+          "price": "4,90 €",
+          "product_url": "https://www.manufactum.de/schwerter-senf-ganzen-koernern-a27815/",
+          "description": "185-ml-Glas",
+          "highlights": [
+            "Mit Biss: mittelscharfer Senf mit ganzen gelben Senfkörnern",
+            "Besonders gut zu Bratwurst oder Grillfleisch",
+            "Handwerklich hergestellt in der Schwerter Senfmühle"
+          ],
+          "warehouse_availability": [
+            {
+              "warehouse_id": "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+              "warehouse": "Manufactum Berlin",
+              "address": "Hardenbergstraße 4-5, 10623 Berlin",
+              "phone": "+49 30 24033844",
+              "opening_hours": {
+                "Montag": "10:00 - 20:00 Uhr",
+                "Dienstag": "10:00 - 20:00 Uhr",
+                "Mittwoch": "10:00 - 20:00 Uhr",
+                "Donnerstag": "10:00 - 20:00 Uhr",
+                "Freitag": "10:00 - 20:00 Uhr",
+                "Samstag": "10:00 - 18:00 Uhr",
+                "Sonntag": "Geschlossen"
+              },
+              "status": "AVAILABLE",
+              "status_text": "Verfügbar",
+              "stock": 17
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
