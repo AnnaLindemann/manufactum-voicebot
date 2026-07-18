@@ -2,9 +2,11 @@
 
 ## Current status
 
-Phase 0 — Project Foundation.
+Phase 2 — Internal API Contracts.
 
-The backend foundation is available locally. No customer-facing voicebot capability is implemented yet.
+Phases 0 and 1 are accepted. The backend foundation is available locally, the upstream search API has
+been observed and documented, and the MVP product-search contract is agreed. No customer-facing
+voicebot capability is implemented yet, and no backend route calls the Manufactum API.
 
 ## Available now
 
@@ -12,6 +14,8 @@ The backend foundation is available locally. No customer-facing voicebot capabil
 - Express application.
 - `GET /health` endpoint.
 - Type checking, linting, formatting, and automated health test.
+- A documented, evidence-based contract for the future `GET /api/products/search` route
+  (`api-contracts.md`). Contract only — the route does not exist.
 
 ## Not available yet
 

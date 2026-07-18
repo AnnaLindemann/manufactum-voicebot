@@ -133,31 +133,71 @@ POST /api/rag/query
 
 Only endpoints supported by real external capabilities are implemented.
 
+Of the candidates above, only `GET /health` exists and only `GET /api/products/search` has an observed
+upstream capability behind it. Every other candidate remains roadmap intent with no contract.
+
 ### Deliverable
 
-Reviewed API contracts and validation schemas.
+The reviewed, agreed MVP contract for `GET /api/products/search`, recorded in `api-contracts.md`.
+
+Phase 2 is a **documentation-only** phase. It adds no route, no validation-schema code, no upstream
+client, no middleware, and no tests. See `D-014`.
+
+### Acceptance gate
+
+Phase 2 is accepted when:
+
+- the MVP contract is recorded with observed evidence and internal decisions distinguished;
+- `domain-model.md`, `architecture.md`, `test-strategy.md`, and `project-decisions.md` agree with it;
+- `D-012`'s trigger is stated consistently against the phase that introduces the first route;
+- a Phase 2 Implementation Report exists.
+
+No route, client, middleware, or test may be added during Phase 2.
 
 ---
 
 ## Phase 3 — Product Search, Price, and Availability
 
+Phase 3 introduces the **first API route**. It implements the contract agreed in Phase 2; it does not
+redesign it.
+
 ### Tasks
 
-- normalize raw API responses;
+- implement `GET /api/products/search` as contracted in `api-contracts.md`;
+- implement the upstream client for the observed `GET /search`;
+- implement request validation, rejecting invalid input before any upstream call;
+- implement raw upstream response schemas, kept separate from internal models;
+- normalize raw API responses through a pure mapper;
 - search by keyword;
 - search by article number;
-- limit results;
-- return current price;
+- limit results within the internal 1–5 range;
+- return the current price as `priceText`, verbatim and unparsed;
 - return selected-store availability;
-- return other-store availability;
-- return online availability when supported;
-- return product URL when supported;
-- handle ambiguity and no results;
-- add tests and logs.
+- return other-store availability when no warehouse is supplied;
+- handle no results as a normal `200` outcome;
+- treat an empty availability list as "no availability returned", never as out of stock;
+- add unit, integration, and contract tests.
+
+### Required with the first route (`D-012`)
+
+These are not optional extras of Phase 3. They must exist before the route returns real product data:
+
+- the structured error envelope defined in `architecture.md` and `api-contracts.md`;
+- correlation-ID request logging;
+- central Express error middleware;
+- a 404 handler.
+
+### Not in Phase 3
+
+- online availability, which was never observed and is treated as unsupported per `D-011`;
+- ambiguity resolution and exact-match determination. Observed result order is not stable and
+  `products[0]` is not authoritative, so the route returns the ranked list as received;
+- distinguishing an unknown warehouse from a warehouse with no stock, which needs the Phase 4 store
+  registry.
 
 ### Deliverable
 
-Working product-search backend.
+Working product-search backend with safe structured errors.
 
 ---
 

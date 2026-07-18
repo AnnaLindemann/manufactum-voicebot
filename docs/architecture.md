@@ -83,8 +83,21 @@ The backend returns structured errors.
 {
   "code": "UPSTREAM_TIMEOUT",
   "safeCustomerMessage": "Ich kann den Bestand gerade nicht zuverlässig prüfen.",
-  "retryable": true
+  "retryable": true,
+  "correlationId": "…"
 }
 ```
 
 Dialfire never reads raw technical errors to the caller.
+
+Rules:
+
+- upstream status codes are never forwarded; the internal status set is fixed;
+- upstream error bodies are never forwarded;
+- `safeCustomerMessage` carries no technical detail, URL, or parameter name;
+- `correlationId` is echoed so a customer-reported failure can be traced to its logs.
+
+The agreed error codes, HTTP statuses, and retryable flags are defined in `api-contracts.md`.
+
+This envelope is implemented in the phase that introduces the first API route, which is Phase 3. See
+`D-012` and `D-014`.

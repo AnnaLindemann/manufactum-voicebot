@@ -75,23 +75,47 @@ Consequences:
 - a capability is treated as unsupported until an observation proves otherwise;
 - `api-contracts.md` stays provisional until Phase 1 discovery is complete.
 
-## D-012 — Structured error envelope and correlation logging begin with API routes
+## D-012 — Structured error envelope and correlation logging begin with the first API route
 
-Deferred, with a fixed trigger.
+Deferred, with a fixed trigger. **Trigger restated in Phase 2.**
 
 The structured error envelope defined in `architecture.md`
-(`code`, `safeCustomerMessage`, `retryable`, HTTP status) and the correlation-ID request logging
-defined in `coding-standards.md` are **not** implemented in Phase 0.
+(`code`, `safeCustomerMessage`, `retryable`, `correlationId`, HTTP status) and the correlation-ID
+request logging defined in `coding-standards.md` are **not** implemented in Phase 0, and are **not**
+implemented in Phase 2.
 
 Reason: Phase 0 exposes only `GET /health`, which has no upstream dependency, no customer-facing
-failure mode, and no payload to redact. Building the envelope now would mean designing error codes
-against an API whose failure behavior has not yet been observed, which conflicts with `D-011`.
+failure mode, and no payload to redact. Building the envelope then would have meant designing error
+codes against an API whose failure behavior had not yet been observed, which conflicts with `D-011`.
 
-Trigger: both must be implemented in the same phase that introduces the first API route
-(Phase 2 — Internal API Contracts) and must exist before Phase 3 returns real product data.
+Trigger: both must be implemented **in the same phase that introduces the first API route, which is
+Phase 3 — Product Search, Price, and Availability**, and must exist before that route returns real
+product data.
 
-Risk accepted: until then the application has no 404 handler and no error middleware, so unexpected
-failures fall through to the Express default handler.
+### Why the trigger names Phase 3 and not Phase 2
+
+The original wording assumed the first API route would appear in Phase 2, and named Phase 2
+parenthetically. That assumption did not hold. `D-014` establishes that Phase 2 is a
+documentation-only phase producing a contract, and that the first route appears in Phase 3.
+
+The trigger itself is unchanged: it has always been _the phase that introduces the first API route_.
+Only the phase number satisfying it has moved, because the route moved. The safety requirement is
+also unchanged, and is in fact tightened: the envelope, correlation logging, the error middleware,
+and the 404 handler must all be in place in Phase 3 **before** the product-search route returns real
+product data, not merely in the same phase.
+
+Deferring the envelope to Phase 3 rather than building it in Phase 2 also keeps it consistent with
+`D-011`. The error codes are now designed against the failure behavior actually observed in Phase 1
+and recorded in `api-contracts.md`, and they are implemented in the same phase as the code paths that
+raise them, so no code path is written against an untested envelope.
+
+The error codes, HTTP statuses, retryable flags, and handling rules are already agreed and documented
+in `api-contracts.md`. Phase 3 implements them; it does not redesign them.
+
+Risk accepted: until Phase 3 the application has no 404 handler and no error middleware, so
+unexpected failures fall through to the Express default handler. This risk is unchanged in size,
+because the only route that exists in the meantime is `GET /health`, which has no upstream dependency
+and no customer-facing failure mode.
 
 ## D-013 — Type-aware ESLint enabled for Phase 1
 
@@ -131,3 +155,72 @@ Checks run:
 
 No production or script code required changes: `scripts/test-search-api.ts` already terminated its
 promise chain with `.catch()`.
+
+## D-014 — Phase 2 produces a documented contract only; the first route is Phase 3
+
+Accepted.
+
+Phase 2 — Internal API Contracts creates documentation only. It adds no route, no schema code, no
+upstream client, no middleware, and no tests. Its deliverable is the agreed MVP contract for
+`GET /api/products/search` in `api-contracts.md`.
+
+Phase 3 — Product Search, Price, and Availability introduces the first API route, together with
+everything that route requires to fail safely: the upstream client, request and response schemas, the
+mapper, correlation-ID logging, the Express error middleware, the 404 handler, and tests.
+
+Reason: `roadmap.md` already defines Phase 2's deliverable as reviewed API contracts and Phase 3's as
+a working product-search backend. Letting Phase 2 return real product data would collapse the two
+phases and make the Phase 3 acceptance gate meaningless.
+
+The route and its error handling are kept in one phase deliberately. Splitting them — a route in one
+phase, its error middleware in the next — would mean shipping a route whose failure modes fall
+through to the Express default handler, which is precisely the risk `D-012` exists to close.
+
+Consequences:
+
+- `D-012`'s trigger is satisfied in Phase 3, not Phase 2;
+- the Phase 2 acceptance gate is documentation consistency, not a passing endpoint test;
+- evaluation Level 1 for Phase 2 is limited to the checks that a documentation-only phase can
+  exercise; no endpoint behavior may be recorded as PASS, because none exists.
+
+## D-015 — MVP product-search contract is deliberately narrower than the domain model
+
+Accepted.
+
+The MVP contract exposes only what is needed to answer a product-search question safely, even where
+more data was observed upstream.
+
+Excluded although observed upstream:
+
+- `manufactum` product field `manufacturer` — not needed to answer an MVP search question, and every
+  exposed field is one the contract must then keep stable;
+- `status_text` — upstream-controlled free text; exposing it would let an upstream wording change flow
+  straight into a spoken answer with no schema check;
+- a numeric price. The upstream `price` was observed only as a localized string such as `"11,90 €"`.
+  Parsing it would invent structure from a single observed format, and a mis-parse would make the bot
+  speak a wrong price — the failure mode `test-strategy.md` ranks first among its acceptance criteria.
+  Only `priceText` is returned, verbatim, and consumers speak it as-is.
+
+Excluded as an internal choice:
+
+- `checkedAt` — response freshness is inherently request-time; the field implied caching semantics
+  that do not exist. Timing stays in correlation logs;
+- any reason code accompanying an empty availability list. An unknown warehouse and a warehouse for
+  which upstream returned nothing are shape-identical, so any explanatory flag would dress an
+  unresolved ambiguity in the language of a finding.
+
+Internal request bounds, which are decisions and not observed upstream limits:
+
+- `limit` is restricted to 1–5 with a default of 5. No upstream maximum was ever established. The
+  ceiling reflects what a voice caller can absorb, and it makes the undocumented upstream
+  normalization of `limit=0` and negative values unreachable by design.
+
+Retained defensively:
+
+- `status: "unknown"` for an unrecognized upstream status. No observed value produces it. It exists so
+  one odd availability entry degrades instead of failing a whole response or being coerced into
+  `in_stock`. It is logged with its raw value and must never be spoken as stock information.
+
+This decision is reversible without new discovery, because every exclusion is a choice about what to
+expose rather than a gap in evidence. `manufacturer` and `status_text` remain modelled in the raw
+upstream schema, so they can be exposed later without another discovery phase.

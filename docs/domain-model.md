@@ -1,5 +1,14 @@
 # Domain Model
 
+## Scope note
+
+This document describes the intended domain across all roadmap phases. It is broader than what any
+single phase implements.
+
+The MVP product-search contract in `api-contracts.md` is narrower than the models below. Where the
+two differ, **`api-contracts.md` is authoritative for the MVP**, because it is derived from observed
+evidence. The differences are recorded under each model.
+
 ## Product
 
 ```ts
@@ -8,15 +17,25 @@ type Product = {
   articleNumber?: string;
   name: string;
   shortDescription?: string;
-  price?: {
-    amount: number;
-    currency: string;
-  };
+  priceText?: string;
   productUrl?: string;
   imageUrl?: string;
   source: "manufactum-api";
 };
 ```
+
+### MVP differences
+
+- `priceText` replaces the earlier `price: { amount, currency }`. The upstream price was observed only
+  as a localized string such as `"11,90 €"`, and the MVP does not parse it into a number. See
+  `D-015`.
+- The MVP contract exposes `sku`, `name`, `priceText`, `description`, `highlights`, `productUrl`, and
+  `availability`.
+- `id` is not populated in the MVP; upstream returns `sku`, and no separate product identifier was
+  observed.
+- `imageUrl` is not populated in the MVP. No image field was observed upstream.
+- `highlights`, observed upstream as an array of strings, has no equivalent here because it is
+  specific to the search response rather than to the domain product.
 
 ## Store
 
@@ -48,6 +67,23 @@ type Availability = {
   source: "manufactum-api";
 };
 ```
+
+### MVP differences
+
+- The MVP contract exposes `warehouseId`, `warehouseName`, `address`, `phone`, `openingHours`,
+  `status`, and `stock`.
+- `status` is populated with three of the four values above. `in_stock` and `out_of_stock` come from
+  the observed upstream values `AVAILABLE` and `OUT_OF_STOCK`. `unknown` is a defensive mapping for an
+  unrecognized upstream status; it is logged and must never be spoken as stock information.
+- `low_stock` is **not** populated in the MVP. No observed upstream value produces it.
+- `channel` is not populated. Only physical-store availability was observed; online-shop availability
+  was never confirmed to exist.
+- `productId` and `storeId` are not populated. There is no internal product identifier and no store
+  registry; the store registry arrives in Phase 4.
+- `checkedAt` is not part of the MVP response. Request timing is recorded in correlation logs
+  instead. See `D-015`.
+- An empty availability list never means out of stock. It means only that no availability entries were
+  returned. See `api-contracts.md`.
 
 ## Reservation
 

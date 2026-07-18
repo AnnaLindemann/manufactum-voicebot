@@ -10,7 +10,9 @@
 
 - Are relevant documents present and consistent?
 - Were documentation updates based on evidence?
-- Are API contracts still marked provisional until discovery is complete?
+- Does every contracted field trace to an observed upstream field or to a recorded internal decision?
+- Are observed evidence and internal decisions distinguishable in the contract?
+- Are contracts for unobserved capabilities still marked provisional and out of scope?
 
 ## Security
 
