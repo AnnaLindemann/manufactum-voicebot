@@ -186,8 +186,29 @@ PASS / FAIL
 
 # Acceptance Rule
 
-Every roadmap phase must include an Evaluation Report.
+Every roadmap phase must include exactly one report: the **Implementation Report**, created from
+`implementation-report-template.md`.
 
-A phase is accepted only if all applicable evaluation levels pass successfully.
+There is no separate Evaluation Report document. Evaluation is recorded as a section inside the
+Implementation Report. "Implementation Report" and "Evaluation Report" refer to the same artifact.
+
+A phase is accepted only if all **applicable** evaluation levels pass successfully.
 
 Known limitations must be documented before acceptance.
+
+## Applicability
+
+Evaluation levels apply only when the phase produces the behavior they measure.
+
+Levels 2 to 8 measure customer-facing conversation behavior, information correctness, cost, and
+retrieval quality. They are **not applicable** until customer-facing scenarios exist, which begins
+with Dialfire integration in Phase 8.
+
+Before that point:
+
+- Level 1 (Technical Validation) applies, limited to what the phase actually builds;
+- Levels 2 to 8 are recorded as "not applicable" with a one-line reason;
+- a level is never recorded as PASS when it was not exercised.
+
+Phase 0 specifically evaluates Level 1 only. It has no API calls, no conversation, no retrieval, and
+no cost surface to measure.

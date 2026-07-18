@@ -18,6 +18,28 @@ Create a clean GitHub repository and local Node.js/TypeScript environment.
 - add documentation;
 - define branch and commit rules.
 
+### Deliverable
+
+A local project that starts successfully and passes a health-check test.
+
+### Acceptance gate
+
+Phase 0 is accepted only when all of the following hold:
+
+- `npm run check` passes in full: test-inclusive type checking, linting, formatting, tests, and build;
+- the compiled build starts and `GET /health` returns `200`;
+- `.env` is ignored, `.env.example` is present, and no secrets exist in source, logs, fixtures,
+  documentation, or Git history;
+- branch and commit rules are documented in `coding-standards.md`;
+- a Phase 0 Implementation Report exists;
+- architecture and acceptance review findings are resolved or explicitly recorded as deferrals;
+- Phase 0 is explicitly accepted before any Phase 1 branch is opened.
+
+No external API call, database, RAG component, Dialfire integration, or deployment may be added
+during Phase 0.
+
+---
+
 ## Delivery Strategy
 
 The project is implemented incrementally.
@@ -29,10 +51,6 @@ Customer demonstrations are organized as milestones.
 Each milestone combines one or more roadmap phases into a demonstrable working solution.
 
 Customer feedback is collected after every milestone before continuing development.
-
-### Deliverable
-
-A local project that starts successfully and passes a health-check test.
 
 ---
 
@@ -67,9 +85,22 @@ Determine what the real Manufactum API actually returns.
 - online availability;
 - status codes and error bodies.
 
+### Documentation flow
+
+1. Record every individual experiment in `api-discovery-log.md`
+   (request variation, expected observation, actual status, result summary, redacted sample).
+2. Promote a finding to `api-observation-report.md` only once it is confirmed by observation.
+3. Update `api-contracts.md` only after a finding is recorded in `api-observation-report.md`.
+
+`api-discovery-log.md` is the working record. `api-observation-report.md` is the deliverable.
+
+Client-provided request details in `api-discovery-plan.md` are unverified starting points and never
+define a contract. See `D-011` in `project-decisions.md`.
+
 ### Deliverable
 
-`api-observation-report.md` with redacted sample responses and actual field meanings.
+`api-observation-report.md` with redacted sample responses and actual field meanings, supported by a
+completed `api-discovery-log.md`.
 
 ### Acceptance gate
 

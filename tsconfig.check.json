@@ -1,0 +1,13 @@
+{
+  // Type-check only. Covers test files, which the build config intentionally excludes.
+  // The build config (tsconfig.json) compiles src/ alone, so tests are never emitted to dist/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["src", "tests"]
+}

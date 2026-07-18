@@ -55,8 +55,56 @@ Do not log:
 
 ## Git
 
-- one roadmap phase at a time;
-- small commits;
-- meaningful messages;
-- no secrets;
-- no undocumented schema changes.
+- Work on `main` during the MVP.
+- Make one focused, meaningful commit after an accepted roadmap phase.
+- Do not commit secrets, local `.env` files, or unredacted API responses.
+- Run `npm run check` before a commit.
+- Introduce branches, pull requests, and branch protection only when collaboration or release risk makes them necessary.
+
+### Branch rules
+
+`main` is the accepted-phase branch. It contains only phases that have been reviewed and accepted.
+
+Direct commits to `main` are not allowed after the Phase 0 foundation commit.
+
+All further phase work uses a dedicated branch:
+
+```text
+phase/<number>-<short-name>
+```
+
+Examples:
+
+```text
+phase/1-api-discovery
+phase/2-internal-contracts
+phase/3-product-search
+```
+
+Rules:
+
+- one branch per roadmap phase;
+- branch from current `main`;
+- do not mix two roadmap phases in one branch;
+- do not open a phase branch before the previous phase is accepted.
+
+### Merge rules
+
+A phase branch may be merged into `main` only after all of the following:
+
+1. all checks pass (`npm run check`);
+2. an implementation report exists for the phase;
+3. an architecture and acceptance review has been performed;
+4. review findings are resolved or explicitly accepted;
+5. the phase is explicitly accepted;
+6. merge approval is given explicitly.
+
+Merging without explicit approval is not allowed, even when all checks pass.
+
+### Commit rules
+
+- do not commit unless a commit is explicitly requested;
+- keep commits scoped to the active roadmap phase;
+- describe the change, not the tool used to make it;
+- never commit secrets, credentials, unredacted API samples, or personal data;
+- documentation changes that support a phase belong in that phase's branch.

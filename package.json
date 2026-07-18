@@ -2,18 +2,20 @@
   "name": "manufactum-voicebot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
     "test": "vitest run",
     "dev": "tsx watch src/server.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/server.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+    "typecheck": "tsc --project tsconfig.check.json",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build"
   },
   "repository": {
     "type": "git",

@@ -4,14 +4,31 @@
 
 Understand the real API before designing the integration.
 
-## Known example shape
+## Unverified starting details
+
+The request details below are client-provided starting points for Phase 1 experiments.
+
+They are **unverified**. They must not be treated as a contract.
 
 ```text
 GET /search?q=senf&warehouse=493024033844&limit=2
 GET /search?q=209567&warehouse=493024033844
 ```
 
-The exact API-key header must be confirmed.
+The following must all be confirmed by observation before any of them influences the internal contract:
+
+- the base URL;
+- the API-key header name;
+- the path;
+- the query-parameter names;
+- the accepted warehouse-identifier formats;
+- every response field name, type, and meaning;
+- every advertised capability.
+
+No client-provided example response is stored in this repository. Response structure is defined
+only by redacted observed results recorded in `api-observation-report.md`.
+
+See `D-011` in `project-decisions.md`.
 
 ## Local test script
 
