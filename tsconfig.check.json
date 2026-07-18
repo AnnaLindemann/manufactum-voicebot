@@ -1,6 +1,7 @@
 {
-  // Type-check only. Covers test files, which the build config intentionally excludes.
-  // The build config (tsconfig.json) compiles src/ alone, so tests are never emitted to dist/.
+  // Type-check only. Covers test files and discovery scripts, which the build config intentionally
+  // excludes. The build config (tsconfig.json) compiles src/ alone, so neither is emitted to dist/.
+  // This config is also the project used by type-aware ESLint rules (see D-013).
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
@@ -9,5 +10,5 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "scripts"]
 }

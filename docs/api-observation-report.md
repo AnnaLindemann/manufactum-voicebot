@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+Completed for the observed Phase 1 product-search discovery scope.
 
 This report contains only observed results from Phase 1 API discovery.
 
@@ -127,14 +127,12 @@ Observed `opening_hours` is an object keyed by German weekday names.
 
 ## Unsupported or unknown capabilities
 
-- Exact product-name matching behavior.
-- Partial-word, typo, umlaut, long-text, and special-character search behavior.
-- Maximum supported `limit`.
-- Non-numeric `limit` behavior.
+- Whether exact product-name matching, partial-word matching, typo tolerance, umlaut/transliteration handling, and special-character handling are stable or documented search guarantees.
+- Maximum supported `limit` and the upstream normalization rule for `0` and negative values.
 - Pagination and rate limits.
 - Online availability.
-- Alternatives, variants, categories, and reservation endpoints.
-- Whether all product and availability fields are stable across responses.
+- Alternatives, categories, variants, store-resolution, and reservation endpoints.
+- Whether all observed product and availability fields are stable across responses.
 
 ## Contract changes based on evidence
 

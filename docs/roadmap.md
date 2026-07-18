@@ -33,7 +33,7 @@ Phase 0 is accepted only when all of the following hold:
 - branch and commit rules are documented in `coding-standards.md`;
 - a Phase 0 Implementation Report exists;
 - architecture and acceptance review findings are resolved or explicitly recorded as deferrals;
-- Phase 0 is explicitly accepted before any Phase 1 branch is opened.
+- Phase 0 is explicitly accepted before Phase 1 work begins.
 
 No external API call, database, RAG component, Dialfire integration, or deployment may be added
 during Phase 0.

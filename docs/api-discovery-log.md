@@ -37,5 +37,4 @@
 | EXP-021 | Valid `x-api-key`; `q=Moutard`, Berlin warehouse, `limit=2` | Partial-word query returned `218467` and `218468`. |
 | EXP-022 | Valid `x-api-key`; `q=senf & honig`, Berlin warehouse, `limit=2` | Query with spaces and `&` returned `27814` and `217118`. |
 
-- Create a redacted sample with the local TypeScript discovery script.
 - Test remaining planned search variants and unknown API capabilities.
