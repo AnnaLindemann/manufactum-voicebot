@@ -224,3 +224,92 @@ Retained defensively:
 This decision is reversible without new discovery, because every exclusion is a choice about what to
 expose rather than a gap in evidence. `manufacturer` and `status_text` remain modelled in the raw
 upstream schema, so they can be exposed later without another discovery phase.
+
+## D-016 — Phase 3 review corrections: timeout, upstream strictness, and correlation input
+
+Accepted.
+
+Three corrections were applied to the Phase 3 implementation in review. None of them changes what the
+route returns on a successful call.
+
+### Upstream timeout raised from 5 s to 8 s
+
+`api-contracts.md` set 5 seconds in Phase 2 as an explicitly unmeasured decision and required it be
+revisited with real latency data in Phase 3. The measurement was taken against the dev upstream: the
+cold call took **4431 ms**; warm calls took **316 ms, 472 ms, and 476 ms**. A cold call consumed 89%
+of the 5-second budget, so a cold upstream would have intermittently produced `UPSTREAM_TIMEOUT` on a
+live call — a correctly implemented route failing for a reason unrelated to the caller's request.
+
+The timeout is now **8 seconds**, held in one place, `DEFAULT_UPSTREAM_TIMEOUT_MS` in
+`src/config/manufactum-config.ts`, and overridable per environment through `MANUFACTUM_API_TIMEOUT_MS`
+so a slower environment can be tuned without a code change. It is not duplicated as a literal
+anywhere else.
+
+No retry, backoff, or warm-up was added. A retry would multiply worst-case latency on exactly the
+call that is already slow, which is the wrong trade on a voice call. Whether the cold-start cost is a
+property of the dev environment alone is still open and must be measured against the environment
+Dialfire eventually calls.
+
+### `manufacturer` and `status_text` no longer fail a response when absent
+
+The first implementation modelled both as required in the raw upstream schema, so upstream dropping
+either would have produced `UPSTREAM_INVALID_RESPONSE` for a response the backend could still have
+answered correctly. Neither field is part of the public contract, per `D-015`.
+
+The strictness rule protects fields that reach a caller: a price or a stock value spoken wrongly is
+worse than a safe failure. That reasoning does not extend to a field no consumer reads. Both fields
+are now optional.
+
+They remain modelled rather than removed, because a _type_ change is still a shape change worth
+detecting. A `manufacturer` that turns into a number is still rejected; only absence is tolerated.
+Every field that **is** mapped into the public contract stays required and strictly typed.
+
+### `x-correlation-id` is the only accepted inbound correlation header
+
+The first implementation also honoured `x-request-id`. Two accepted spellings mean two things a
+caller can send and two things an operator must check when tracing a reported failure, for no gain.
+`x-request-id` is now ignored; when `x-correlation-id` is absent, empty, or empty after sanitization,
+an ID is generated. The response header and the error envelope are unchanged.
+
+## D-017 — Upstream latency and total request latency are logged as two named metrics
+
+Accepted.
+
+Phase 3 originally logged a single `latencyMs`. It was measured around the `fetch` call, so it
+covered the Manufactum request only, but its name implied it covered the request. Two things went
+wrong as a result:
+
+- an operator reading a log line could not tell backend overhead from upstream time;
+- the 8-second upstream timeout and the logged figure looked like they governed the same quantity.
+  They do not: the timeout bounds the `fetch` call, while total request duration also includes body
+  download, schema validation, mapping, and serialization.
+
+Two explicitly named metrics now replace it:
+
+- `upstreamLatencyMs` — the Manufactum call alone, from issuing the `fetch` until its response
+  headers arrive or it fails. This is exactly the span the upstream timeout bounds.
+- `requestLatencyMs` — total backend handling, from request entry until the response is completed.
+  Logged for every HTTP request, including those that never call upstream.
+
+When an upstream call occurs, both appear on the `request_completed` line, so a single entry shows
+the upstream portion and the whole, and their difference is the backend's own overhead. On a request
+that made no upstream call, `upstreamLatencyMs` is **absent** rather than zero: a zero would be a
+fabricated measurement of something that never happened.
+
+The upstream client reports its timing through a small `RequestContext`
+(`src/observability/request-context.ts`) carrying the correlation ID and a latency sink. The context
+holds no Express type, so the integration layer still knows nothing about HTTP.
+
+Consequence to keep in view: **the 8-second timeout bounds `upstreamLatencyMs` only.** Body download,
+schema validation, and mapping run after that measurement stops, so total request duration can exceed
+8 seconds without the timeout firing. Any end-to-end latency budget must be set against
+`requestLatencyMs` and enforced separately; none is defined yet.
+
+What the split then showed, once both figures were measured inside the same request: backend overhead
+is **small** — 16 ms on a cold call (4591 ms total against 4575 ms upstream) and 2 ms warm (497 against
+495). This corrects an earlier claim in the Phase 3 report of a roughly 1.2-second gap. That figure
+came from comparing a `curl` client-side total against a server-side log line, which folded client
+connection setup into what was read as backend time. The two quantities were never comparable; only
+now, measured in the same request, is the real overhead visible. The split remains worthwhile, because
+the timeout genuinely governs only one of the two — but it did not uncover hidden backend cost, and
+no claim of one should be carried forward.

@@ -231,8 +231,17 @@ a safe failure message.
 additional upstream fields are ignored, so upstream may add fields without breaking the backend.
 
 `[D]` Fields observed upstream but excluded from the public contract (`manufacturer`, `status_text`)
-are still modeled in the raw upstream schema, so an upstream shape change is still detected even
-though the field is not carried across the mapping boundary.
+are still modeled in the raw upstream schema, but as **optional**. Their absence must not produce
+`UPSTREAM_INVALID_RESPONSE`.
+
+`[D]` Corrected in the Phase 3 review. The first implementation modelled both as required, which
+meant upstream dropping a field that no consumer reads would have failed an entire response the
+backend could still have answered correctly. The strictness rule exists to protect fields that reach
+a caller — a price or a stock value spoken wrongly — and neither of these does.
+
+`[D]` Optional does not mean unvalidated: when either field is present it must still carry its
+observed type, so a `manufacturer` that turns into a number is still rejected. A _type_ change stays
+visible; only _absence_ is tolerated.
 
 `[D]` The single deliberate exception to strict rejection is an unrecognized `status` value, which
 maps to `unknown` rather than failing the response, as described above.
@@ -326,21 +335,64 @@ raw technical errors, per `architecture.md`.
 violation will not fix itself on retry; marking either retryable would make a voice agent stall on a
 call that cannot succeed.
 
-`[D]` Internal upstream request timeout: 5 seconds. This is tighter than the 10-second timeout used
-by the Phase 1 discovery script, because a voice call cannot wait 10 seconds. No upstream latency data
-was collected in Phase 1, so this value is a decision and not a measurement. It must be revisited with
-real latency data in Phase 3.
+`[D]` Internal upstream request timeout: **8 seconds**, configurable per environment through
+`MANUFACTUM_API_TIMEOUT_MS`. This is still tighter than the 10-second timeout used by the Phase 1
+discovery script, because a voice call cannot wait indefinitely.
+
+`[E]` The Phase 2 value of 5 seconds was an unmeasured decision, and this contract required it be
+revisited with real latency data in Phase 3. That measurement was taken: the **cold** upstream call
+took **4431 ms**, while warm calls took **316 ms, 472 ms, and 476 ms**. A cold call therefore
+consumed 89% of a 5-second budget.
+
+`[D]` The timeout was raised to 8 seconds so that a cold start has real headroom instead of
+intermittently producing `UPSTREAM_TIMEOUT` on a live call. No retry, backoff, or warm-up
+accompanies the change: a retry would multiply worst-case latency on exactly the call that is already
+slow. See `D-016`.
 
 ### Logging
 
-`[D]` Logged per request: correlation ID, endpoint, upstream status, latency, result count, error
-code, and the raw upstream `status` value whenever it maps to `unknown`.
+`[D]` Logged per request: correlation ID, endpoint, upstream status, both latency metrics below,
+result count, error code, and the raw upstream `status` value whenever it maps to `unknown`.
+
+#### Latency metrics
+
+`[D]` Two distinct measurements are logged, never one ambiguous "latency":
+
+| Field               | Measures                                                                                             | Present when                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `upstreamLatencyMs` | The Manufactum call alone: issuing the `fetch` until its response headers arrive, or until it fails. | An upstream call was made.             |
+| `requestLatencyMs`  | Total backend handling: request entry until the response is completed.                               | Every HTTP request, without exception. |
+
+`[D]` When an upstream call occurs both are reported on the `request_completed` line, so one log
+entry shows the upstream portion and the whole. Their difference is the backend's own overhead —
+body download, schema validation, mapping, and serialization.
+
+`[D]` `upstreamLatencyMs` is **absent**, not zero, on a request that made no upstream call, such as
+an `INVALID_REQUEST` rejected at the boundary or an unknown route. A zero would be a fabricated
+measurement of something that never happened.
+
+`[D]` **The upstream timeout governs `upstreamLatencyMs`, not `requestLatencyMs`.** The configured
+8 seconds bounds the `fetch` call only. Body download, schema validation, and mapping happen after
+that measurement stops and are not covered by it, so total request duration can exceed the timeout
+without the timeout firing. Any future end-to-end latency budget must be set against
+`requestLatencyMs` and enforced separately.
+
+`[D]` This split was introduced by the Phase 3 observability fix. The single `latencyMs` field it
+replaces was measured at the upstream call but named as though it covered the request, which made
+the logged figure and the timeout look like they governed the same quantity. See `D-017`.
 
 `[D]` Never logged: the API key, the value of the `x-api-key` header, or full upstream response
 bodies.
 
-`[D]` The correlation ID is taken from an inbound request header when present and generated
-otherwise. It is echoed in the error envelope so a customer-reported failure is traceable.
+`[D]` The correlation ID is taken from the inbound `x-correlation-id` header when present and
+generated otherwise. It is echoed in the response `x-correlation-id` header and in the error envelope
+so a customer-reported failure is traceable.
+
+`[D]` `x-correlation-id` is the **only** accepted inbound header. An `x-request-id` was also honoured
+in the first Phase 3 draft and was removed in review: two accepted spellings mean two things a caller
+can send and two things an operator must check when tracing a reported failure. An inbound value is
+trimmed, bounded at 128 characters, and stripped of characters outside `[A-Za-z0-9_.:-]` before it
+reaches a log line; a value that is empty after that treatment is replaced by a generated ID.
 
 ---
 
