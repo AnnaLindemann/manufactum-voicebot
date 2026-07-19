@@ -313,3 +313,72 @@ connection setup into what was read as backend time. The two quantities were nev
 now, measured in the same request, is the real overhead visible. The split remains worthwhile, because
 the timeout genuinely governs only one of the two — but it did not uncover hidden backend cost, and
 no claim of one should be carried forward.
+
+## D-018 — Test Deployment is a separate checkpoint, protected by a rate limit rather than a token
+
+Accepted.
+
+The Test Deployment is a **separate checkpoint** taken after Phase 3 acceptance. It is not Phase 4,
+and it is not Phase 7 pulled forward. This resolves the ordering contradiction recorded as `C-2` in
+`deployment-preflight.md`: `roadmap.md` places public test deployment at Phase 7, while
+`deployment-strategy.md` § Deployment order places it immediately after one normalized endpoint,
+which is where the project stands and which `D-008` supports. Both documents keep their wording; this
+decision states that the checkpoint is its own unit of work, so Phase 4 remains the next roadmap
+phase and nothing in Phase 7 is considered delivered.
+
+### No shared inbound token
+
+A shared static token on `GET /api/products/search` was considered as the cheapest access control
+and **rejected**. Dialfire's secret storage is unconfirmed. A token that has to live in a Dialfire
+script is not held securely, and an insecure token is worse than none: it produces the appearance of
+access control without the substance, and invites the endpoint to be treated as protected when it is
+not. The endpoint is therefore **unauthenticated and read-only** for the duration of the checkpoint,
+and that fact is stated plainly rather than papered over.
+
+### Rate limit as the compensating control
+
+Because there is no inbound authentication, the rate limit is the only control standing between the
+public URL and our upstream Manufactum credential. Agreed policy: **20 requests per minute per client
+IP** on `GET /api/products/search`, with `GET /health` exempt so platform probes cannot be rejected.
+
+This closes `C-1` in `deployment-preflight.md`, where `architecture.md` § Security rules required
+public endpoints to be rate-limited and no limiter existed.
+
+Properties deliberately accepted for a demo-scale deployment, each recorded in `api-contracts.md`
+§ Rate limiting: a fixed rather than sliding window; a code constant rather than an environment
+variable; and in-memory per-process counting, which requires the Test Deployment to run a single
+instance. A shared counter is a Phase 16 concern.
+
+No third-party rate-limiting dependency was added. The implementation is a small fixed-window
+counter, which keeps the dependency surface of a publicly reachable service unchanged.
+
+### `RATE_LIMITED` and the internal status set
+
+`RATE_LIMITED` is added to the error table with HTTP `429` and `retryable: true`. It is the only code
+that waiting alone resolves, and the response carries `Retry-After` in whole seconds. The internal
+status set widens from `{200, 400, 404, 500, 502, 504}` to include `429`. The set remains closed, and
+the rule that no upstream status is ever forwarded is unchanged: `429` is generated internally and
+has no upstream counterpart.
+
+### Fail-fast startup configuration check
+
+`src/server.ts` validates the Manufactum configuration once at startup and exits non-zero when it is
+missing or malformed. This closes `C-6` in `deployment-preflight.md`.
+
+The configuration is still read lazily in the request path, and that stays deliberate: importing the
+app for a test or a health check must not require credentials. But on a deployment the laziness hid a
+real failure — a release with missing variables booted, answered `GET /health` with `200`, was
+reported healthy by the platform, and failed only when the first caller received an `INTERNAL_ERROR`.
+A misconfigured release must fail at deploy time, while rollback is still the obvious response.
+
+The check calls the same loader the client uses, so there is no second definition of validity to
+drift. Its message names the missing variables and never their values.
+
+### `TRUST_PROXY`
+
+The limiter counts against `request.ip`, which resolves to the socket peer unless Express's
+`trust proxy` is enabled. `TRUST_PROXY` is optional and **off by default**, because the two failure
+directions are not symmetric: off behind a real proxy makes every caller share one bucket, which is
+stricter than intended and fails safe; on where no proxy sets `X-Forwarded-For` lets any caller forge
+a fresh identity per request and bypass the limiter entirely. It must be set once the deployment
+topology is known.

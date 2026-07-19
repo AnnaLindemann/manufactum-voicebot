@@ -15,12 +15,13 @@ export const ERROR_CODES = [
   "UPSTREAM_UNAVAILABLE",
   "INTERNAL_ERROR",
   "NOT_FOUND",
+  "RATE_LIMITED",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 type ErrorDefinition = {
-  status: 400 | 404 | 500 | 502 | 504;
+  status: 400 | 404 | 429 | 500 | 502 | 504;
   retryable: boolean;
   safeCustomerMessage: string;
 };
@@ -70,6 +71,12 @@ const ERROR_DEFINITIONS: Record<ErrorCode, ErrorDefinition> = {
     status: 404,
     retryable: false,
     safeCustomerMessage: "Diese Funktion steht nicht zur Verfügung.",
+  },
+  RATE_LIMITED: {
+    status: 429,
+    // Retryable: unlike every other non-2xx code, waiting alone fixes this one.
+    retryable: true,
+    safeCustomerMessage: "Ich bin gerade sehr gefragt. Bitte einen Moment Geduld.",
   },
 };
 

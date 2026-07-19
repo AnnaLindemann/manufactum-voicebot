@@ -16,6 +16,7 @@ const CONTRACT: Record<ErrorCode, { status: number; retryable: boolean }> = {
   UPSTREAM_UNAVAILABLE: { status: 502, retryable: true },
   INTERNAL_ERROR: { status: 500, retryable: false },
   NOT_FOUND: { status: 404, retryable: false },
+  RATE_LIMITED: { status: 429, retryable: true },
 };
 
 describe("AppError", () => {
@@ -26,10 +27,12 @@ describe("AppError", () => {
     expect(error.retryable).toBe(CONTRACT[code].retryable);
   });
 
-  it("keeps the internal status set fixed at {400, 404, 500, 502, 504}", () => {
+  it("keeps the internal status set fixed at {400, 404, 429, 500, 502, 504}", () => {
     const statuses = new Set(ERROR_CODES.map((code) => new AppError(code, "x").status));
 
-    expect([...statuses].sort((a, b) => a - b)).toEqual([400, 404, 500, 502, 504]);
+    // 429 was added by the Test Deployment checkpoint, with the rate limiter. The set is still
+    // closed and still excludes any forwarded upstream status.
+    expect([...statuses].sort((a, b) => a - b)).toEqual([400, 404, 429, 500, 502, 504]);
   });
 
   it.each(ERROR_CODES)("gives %s a safe customer message free of technical detail", (code) => {

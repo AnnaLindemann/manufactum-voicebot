@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/server.js",
+  "engines": {
+    "node": "^24.11.0"
+  },
   "directories": {
     "doc": "docs"
   },

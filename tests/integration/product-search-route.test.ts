@@ -1,6 +1,8 @@
+import type { RequestHandler } from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.js";
+import { createRateLimiter, RATE_LIMIT_MAX_REQUESTS } from "../../src/http/rate-limit.js";
 import { createProductSearchClient } from "../../src/integrations/manufactum/product-search-client.js";
 import { createProductSearchService } from "../../src/services/product-search-service.js";
 import type { ProductSearchResponse } from "../../src/domain/product-search.js";
@@ -16,7 +18,10 @@ import {
  * Integration tests drive the real route, validation, service, client, schema, mapper, and
  * middleware. Only `fetch` is mocked, so no real upstream call is made.
  */
-function createTestApp(upstream: Response | (() => Promise<Response>)) {
+function createTestApp(
+  upstream: Response | (() => Promise<Response>),
+  { rateLimiter }: { rateLimiter?: RequestHandler } = {},
+) {
   const logger = createRecordingLogger();
   const { fetchImplementation, calls } = createFetchStub(upstream);
 
@@ -25,6 +30,7 @@ function createTestApp(upstream: Response | (() => Promise<Response>)) {
     productSearchService: createProductSearchService(
       createProductSearchClient({ loadConfig: () => TEST_CONFIG, fetchImplementation, logger }),
     ),
+    ...(rateLimiter === undefined ? {} : { rateLimiter }),
   });
 
   return { app, calls, logger };
@@ -416,6 +422,102 @@ describe("404 handler", () => {
       expect(errorBody(response).safeCustomerMessage).toEqual(expect.any(String));
     },
   );
+});
+
+describe("rate limiting", () => {
+  /** A frozen clock keeps every request of a test inside one window. */
+  function createLimitedApp() {
+    return createTestApp(jsonResponse(UPSTREAM_BODY), {
+      rateLimiter: createRateLimiter({ now: () => 1_000 }),
+    });
+  }
+
+  async function exhaustBudget(app: Parameters<typeof request>[0]) {
+    for (let sent = 1; sent <= RATE_LIMIT_MAX_REQUESTS; sent += 1) {
+      await request(app).get("/api/products/search?q=senf");
+    }
+  }
+
+  it("serves the agreed 20 requests per minute before rejecting", async () => {
+    const { app } = createLimitedApp();
+
+    for (let sent = 1; sent <= RATE_LIMIT_MAX_REQUESTS; sent += 1) {
+      const response = await request(app).get("/api/products/search?q=senf");
+
+      expect(response.status, `request ${sent} should be served`).toBe(200);
+    }
+
+    expect((await request(app).get("/api/products/search?q=senf")).status).toBe(429);
+  });
+
+  it("returns the structured envelope, not a bare status, when the budget is spent", async () => {
+    const { app } = createLimitedApp();
+    await exhaustBudget(app);
+
+    const response = await request(app).get("/api/products/search?q=senf");
+
+    expect(response.status).toBe(429);
+    expect(errorBody(response).code).toBe("RATE_LIMITED");
+    expect(errorBody(response).retryable).toBe(true);
+    expect(errorBody(response).correlationId).toEqual(expect.any(String));
+    expect(errorBody(response).safeCustomerMessage).toEqual(expect.any(String));
+    // The safe message stays free of technical detail: no limit, no window, no parameter name.
+    expect(errorBody(response).safeCustomerMessage).not.toMatch(/\d/);
+  });
+
+  it("tells the caller how long to wait", async () => {
+    const { app } = createLimitedApp();
+    await exhaustBudget(app);
+
+    const response = await request(app).get("/api/products/search?q=senf");
+
+    expect(response.headers["retry-after"]).toBe("60");
+  });
+
+  it("makes no upstream call for a rejected request", async () => {
+    const { app, calls } = createLimitedApp();
+    await exhaustBudget(app);
+
+    await request(app).get("/api/products/search?q=senf");
+
+    // The whole point of the limit: a rejected request must not spend our upstream credential.
+    expect(calls).toHaveLength(RATE_LIMIT_MAX_REQUESTS);
+  });
+
+  it("logs the rejection with its error code and without the query text", async () => {
+    const { app, logger } = createLimitedApp();
+    await exhaustBudget(app);
+
+    await request(app).get("/api/products/search?q=senf");
+
+    const completed = logger.entries.filter((entry) => entry.event === "request_completed");
+    const rejected = completed.at(-1);
+
+    expect(rejected?.fields.errorCode).toBe("RATE_LIMITED");
+    expect(rejected?.fields.correlationId).toEqual(expect.any(String));
+    expect(JSON.stringify(logger.entries)).not.toContain("senf");
+  });
+
+  it("does not rate-limit the health endpoint", async () => {
+    const { app } = createLimitedApp();
+    await exhaustBudget(app);
+
+    // A platform probe must keep succeeding while a noisy caller is being rejected.
+    const response = await request(app).get("/health");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: "ok" });
+  });
+
+  it("does not rate-limit unknown routes into the wrong error code", async () => {
+    const { app } = createLimitedApp();
+    await exhaustBudget(app);
+
+    const response = await request(app).get("/api/unknown");
+
+    expect(response.status).toBe(404);
+    expect(errorBody(response).code).toBe("NOT_FOUND");
+  });
 });
 
 describe("GET /health", () => {

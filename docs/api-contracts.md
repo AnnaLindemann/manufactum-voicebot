@@ -314,6 +314,7 @@ upstream body, no URL, and no parameter name. Technical messages exist only in l
 | `UPSTREAM_UNAVAILABLE`      | 502  | true      | Any other unexpected upstream status.                                                | `[D]` catch-all; never observed                                          |
 | `INTERNAL_ERROR`            | 500  | false     | Unhandled internal exception.                                                        | `[D]`                                                                    |
 | `NOT_FOUND`                 | 404  | false     | Unknown internal route.                                                              | `[D]`                                                                    |
+| `RATE_LIMITED`              | 429  | true      | The caller exceeded the public rate limit. No upstream call is made.                 | `[D]`                                                                    |
 
 `[D]` `UPSTREAM_REJECTED_REQUEST` should be unreachable in normal operation, because internal
 validation is stricter than the observed upstream validation. If it occurs, the internal request
@@ -323,7 +324,7 @@ caller error.
 ### Error handling rules
 
 `[D]` **Upstream status codes are never forwarded.** The internal status set is fixed at
-`{200, 400, 404, 500, 502, 504}`. An upstream `403` becomes an internal `502`, never an internal
+`{200, 400, 404, 429, 500, 502, 504}`. An upstream `403` becomes an internal `502`, never an internal
 `403`: a missing or invalid API key is a backend misconfiguration, not a fault of the caller, and
 forwarding `403` would invite Dialfire to treat it as an authorization problem on its own side.
 
@@ -331,9 +332,37 @@ forwarding `403` would invite Dialfire to treat it as an authorization problem o
 `{"error":"Query parameter 'q' is required"}` are logged and never returned. Dialfire never receives
 raw technical errors, per `architecture.md`.
 
-`[D]` **Only timeout and `UPSTREAM_UNAVAILABLE` are retryable.** An authentication failure or a schema
-violation will not fix itself on retry; marking either retryable would make a voice agent stall on a
-call that cannot succeed.
+`[D]` **Only `UPSTREAM_TIMEOUT`, `UPSTREAM_UNAVAILABLE`, and `RATE_LIMITED` are retryable.** An
+authentication failure or a schema violation will not fix itself on retry; marking either retryable
+would make a voice agent stall on a call that cannot succeed. `RATE_LIMITED` is the one code that
+waiting alone resolves, and its response carries a `Retry-After` header in whole seconds saying how
+long that wait is.
+
+### Rate limiting
+
+`[D]` `GET /api/products/search` is limited to **20 requests per minute per client IP**. Exceeding
+the limit returns `RATE_LIMITED` as the standard envelope; no upstream call is made for a rejected
+request.
+
+`[D]` `GET /health` is **not** rate-limited, so a platform health probe can never be rejected and
+never consumes a caller's budget.
+
+`[D]` The limit exists because the Test Deployment checkpoint makes the route publicly reachable
+**without inbound authentication**, and every admitted request costs one real upstream call against
+our Manufactum credential. A shared inbound token was considered and rejected: Dialfire's secret
+storage is unconfirmed, so a token held in its script would not be secure, and an insecure token
+would give the appearance of access control without the substance. The limiter is therefore the only
+control on the public endpoint. See `D-018` and `architecture.md` § Security rules.
+
+`[D]` The window is fixed, not sliding. Up to twice the limit can pass across a window boundary. This
+is accepted: the control exists to stop sustained abuse, which cannot hide in one boundary.
+
+`[D]` The limit is a code constant, not an environment variable. A security control that can be
+widened by an environment setting tends to be widened.
+
+`[D]` Counting is **per process and in memory**. More than one instance multiplies the effective
+limit by the instance count, so the Test Deployment runs a single instance. A shared counter is a
+production concern and belongs to Phase 16.
 
 `[D]` Internal upstream request timeout: **8 seconds**, configurable per environment through
 `MANUFACTUM_API_TIMEOUT_MS`. This is still tighter than the 10-second timeout used by the Phase 1
