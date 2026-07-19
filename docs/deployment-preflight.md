@@ -190,8 +190,8 @@ Express's HTML default here is misbuilt.
 curl -i "$BASE/api/products/search?q=Seife"
 ```
 
-Expect: `200`, and a body with `query`, `resultCount`, `warehouseFilterApplied: false`, and a
-`products` array. Each product carries `sku`, `name`, `priceText`, `description`, `highlights`,
+Expect: `200`, and a body with `query`, `resultCount`, `storeResolution: { "status":
+"not_requested" }`, and a `products` array. Each product carries `sku`, `name`, `priceText`, `description`, `highlights`,
 `productUrl`, `availability`. `priceText` must be the verbatim localized string (e.g. `"11,90 €"`),
 never a parsed number.
 
@@ -208,10 +208,13 @@ never a parsed number.
 curl -i "$BASE/api/products/search"
 curl -i "$BASE/api/products/search?q=Seife&limit=9"
 curl -i "$BASE/api/products/search?q=Seife&limit=abc"
+curl -i "$BASE/api/products/search?q=Seife&store=Berlin&storeId=MANUFACTUM_BERLIN_KGA"
+curl -i "$BASE/api/products/search?q=Seife&storeId=MANUFACTUM_BERLIN_KGA&warehouseId=MANUFACTUM_BERLIN_KGA"
 ```
 
-Expect all three: `400` with `code: "INVALID_REQUEST"`, `retryable: false`. No upstream call should
-appear in the logs for any of them.
+Expect all five: `400` with `code: "INVALID_REQUEST"`, `retryable: false`. No upstream call should
+appear in the logs for any of them. The last two are the mutually-exclusive store selectors —
+including `storeId` with its own deprecated alias carrying the _same_ value, which is still rejected.
 
 **5. No results is a normal `200`, not an error**
 
@@ -222,15 +225,39 @@ curl -i "$BASE/api/products/search?q=zzzzzzzzzz"
 Expect: `200`, `resultCount: 0`, `products: []`, and **no** error envelope. A `404` here would
 contradict `api-contracts.md`.
 
-**6. Warehouse filter is echoed honestly**
+**6. Store selection reports what it actually resolved**
+
+```bash
+curl -i "$BASE/api/products/search?q=Seife&storeId=MANUFACTUM_BERLIN_HAUS_HADENBERG"
+curl -i "$BASE/api/products/search?q=Seife&store=Berlin"
+curl -i "$BASE/api/products/search?q=Seife&store=Hamburg"
+```
+
+Expect all three: `200`.
+
+- The first: `storeResolution.status: "matched"` with `selectedStore`, and every product's
+  `availability` containing that one store or an empty array.
+- The second: `storeResolution.status: "ambiguous"` with a `candidates` array, if the live response
+  carries more than one Berlin branch, and `availability` left unfiltered. If the environment has
+  only one Berlin branch, `matched` is correct here instead.
+- The third: `storeResolution.status: "not_found"`, `availability` left unfiltered, and **no**
+  `selectedStore`.
+
+An unfiltered `availability` under `ambiguous` or `not_found` is the contracted behavior, not a bug:
+no store was selected, so that list is every store's availability and must not be presented as the
+requested store's stock. Confirm too that `availability: []` is never rendered anywhere as an
+out-of-stock claim.
+
+**6b. The deprecated `warehouseId` alias still works**
 
 ```bash
 curl -i "$BASE/api/products/search?q=Seife&warehouseId=MANUFACTUM_BERLIN_HAUS_HADENBERG"
 ```
 
-Expect: `200` and `warehouseFilterApplied: true`. The flag records only that a `warehouseId` was
-sent, never that upstream recognized it. An unknown warehouse is also a `200` — distinguishing it is
-Phase 4 work.
+Expect: a body **identical** to step 6's first command. `warehouseId` is a deprecated compatibility
+alias for `storeId` and takes the same local resolution path; new clients should send `storeId`. Note
+that it no longer causes a `warehouse` parameter to be sent upstream — check the logs to confirm the
+outbound call carries only `q` and `limit`.
 
 **7. Correlation ID round-trip**
 

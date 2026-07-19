@@ -76,6 +76,45 @@ const UPSTREAM_BODY = {
   ],
 };
 
+const BERLIN_HARDENBERG_UPSTREAM = UPSTREAM_BODY.products[0]?.warehouse_availability[0];
+
+const BERLIN_KGA_UPSTREAM = {
+  warehouse_id: "MANUFACTUM_BERLIN_KGA",
+  warehouse: "Manufactum Berlin KaDeWe",
+  address: "Tauentzienstraße 21-24, 10789 Berlin",
+  phone: "+49 30 21010000",
+  opening_hours: { Montag: "10:00 - 20:00 Uhr" },
+  status: "OUT_OF_STOCK",
+  status_text: "Nicht verfügbar",
+  stock: 0,
+};
+
+const MUNICH_UPSTREAM = {
+  warehouse_id: "MANUFACTUM_MUENCHEN",
+  warehouse: "Manufactum München",
+  address: "Dienerstraße 12, 80331 München",
+  phone: "+49 89 23545900",
+  opening_hours: { Montag: "10:00 - 19:00 Uhr" },
+  status: "AVAILABLE",
+  status_text: "Verfügbar",
+  stock: 3,
+};
+
+/** One product carried by two Berlin branches and one Munich branch. */
+const MULTI_STORE_BODY = {
+  ...UPSTREAM_BODY,
+  products: [
+    {
+      ...UPSTREAM_BODY.products[0],
+      warehouse_availability: [BERLIN_HARDENBERG_UPSTREAM, BERLIN_KGA_UPSTREAM, MUNICH_UPSTREAM],
+    },
+  ],
+};
+
+function storeIds(response: { body: unknown }): (string | undefined)[] {
+  return (successBody(response).products[0]?.availability ?? []).map((entry) => entry.warehouseId);
+}
+
 describe("GET /api/products/search", () => {
   it("returns 200 with the mapped internal model", async () => {
     const { app } = createTestApp(jsonResponse(UPSTREAM_BODY));
@@ -86,7 +125,7 @@ describe("GET /api/products/search", () => {
     expect(response.body).toEqual({
       query: "senf",
       resultCount: 1,
-      warehouseFilterApplied: false,
+      storeResolution: { status: "not_requested" },
       products: [
         {
           sku: "218467",
@@ -111,18 +150,18 @@ describe("GET /api/products/search", () => {
     });
   });
 
-  it("sets warehouseFilterApplied only when a warehouseId was supplied", async () => {
-    const { app, calls } = createTestApp(jsonResponse(UPSTREAM_BODY));
+  it("keeps every store's availability when no store was requested", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
 
-    const withWarehouse = await request(app)
-      .get("/api/products/search")
-      .query({ q: "senf", warehouseId: "493024033844" });
-    const withoutWarehouse = await request(app).get("/api/products/search").query({ q: "senf" });
+    const response = await request(app).get("/api/products/search").query({ q: "senf" });
 
-    expect(successBody(withWarehouse).warehouseFilterApplied).toBe(true);
-    expect(successBody(withoutWarehouse).warehouseFilterApplied).toBe(false);
-    expect(calls[0]?.url.searchParams.get("warehouse")).toBe("493024033844");
-    expect(calls[1]?.url.searchParams.has("warehouse")).toBe(false);
+    expect(response.status).toBe(200);
+    expect(successBody(response).storeResolution).toEqual({ status: "not_requested" });
+    expect(storeIds(response)).toEqual([
+      "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+      "MANUFACTUM_BERLIN_KGA",
+      "MANUFACTUM_MUENCHEN",
+    ]);
   });
 
   it("returns 200 with resultCount 0 for a no-match query, not an error", async () => {
@@ -134,7 +173,7 @@ describe("GET /api/products/search", () => {
     expect(response.body).toEqual({
       query: "xyzzy",
       resultCount: 0,
-      warehouseFilterApplied: false,
+      storeResolution: { status: "not_requested" },
       products: [],
     });
     expect(response.body).not.toHaveProperty("code");
@@ -148,13 +187,11 @@ describe("GET /api/products/search", () => {
       }),
     );
 
-    const response = await request(app)
-      .get("/api/products/search")
-      .query({ q: "senf", warehouseId: "unknown-warehouse" });
+    const response = await request(app).get("/api/products/search").query({ q: "senf" });
 
     expect(response.status).toBe(200);
     expect(successBody(response).products[0]?.availability).toEqual([]);
-    // warehouseFilterApplied and the empty array are the only two signals. Nothing explains why.
+    // The empty array is the only signal. Nothing explains why.
     expect(Object.keys(successBody(response).products[0] ?? {})).not.toContain(
       "availabilityReason",
     );
@@ -171,6 +208,24 @@ describe("GET /api/products/search", () => {
     ["limit -1", { q: "senf", limit: "-1" }],
     ["limit 6", { q: "senf", limit: "6" }],
     ["limit 100", { q: "senf", limit: "100" }],
+    [
+      "store and storeId together",
+      { q: "senf", store: "Berlin", storeId: "MANUFACTUM_BERLIN_KGA" },
+    ],
+    [
+      "store and the deprecated warehouseId together",
+      { q: "senf", store: "Berlin", warehouseId: "MANUFACTUM_BERLIN_KGA" },
+    ],
+    [
+      "storeId and the deprecated warehouseId together",
+      { q: "senf", storeId: "MANUFACTUM_BERLIN_KGA", warehouseId: "MANUFACTUM_MUENCHEN" },
+    ],
+    ["empty store", { q: "senf", store: "   " }],
+    ["empty storeId", { q: "senf", storeId: "   " }],
+    ["empty warehouseId", { q: "senf", warehouseId: "   " }],
+    ["over-length warehouseId", { q: "senf", warehouseId: "a".repeat(65) }],
+    ["over-length store", { q: "senf", store: "a".repeat(121) }],
+    ["over-length storeId", { q: "senf", storeId: "a".repeat(65) }],
   ])("rejects %s with INVALID_REQUEST and makes no upstream call", async (_label, query) => {
     const { app, calls } = createTestApp(jsonResponse(UPSTREAM_BODY));
 
@@ -263,6 +318,258 @@ describe("GET /api/products/search", () => {
 
     expect(JSON.stringify(response.body)).not.toContain(TEST_CONFIG.apiKey);
     expect(JSON.stringify(response.headers)).not.toContain(TEST_CONFIG.apiKey);
+  });
+});
+
+describe("store selection", () => {
+  it("filters availability to the one store named by an exact storeId", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_BERLIN_KGA" });
+
+    expect(response.status).toBe(200);
+    expect(successBody(response).storeResolution).toEqual({
+      status: "matched",
+      selectedStore: {
+        storeId: "MANUFACTUM_BERLIN_KGA",
+        warehouseName: "Manufactum Berlin KaDeWe",
+        address: "Tauentzienstraße 21-24, 10789 Berlin",
+      },
+    });
+    expect(storeIds(response)).toEqual(["MANUFACTUM_BERLIN_KGA"]);
+  });
+
+  it("returns an empty availability list for a product the selected store does not carry", async () => {
+    const { app } = createTestApp(
+      jsonResponse({
+        ...MULTI_STORE_BODY,
+        products: [
+          {
+            ...MULTI_STORE_BODY.products[0],
+            warehouse_availability: [MUNICH_UPSTREAM],
+          },
+        ],
+      }),
+    );
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_MUENCHEN" });
+
+    // The store resolved, so filtering is legitimate; the product simply is not in Berlin's list.
+    expect(successBody(response).storeResolution.status).toBe("matched");
+    expect(storeIds(response)).toEqual(["MANUFACTUM_MUENCHEN"]);
+  });
+
+  it("reports not_found for an unknown storeId without claiming the product is absent", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_NOWHERE" });
+
+    expect(response.status).toBe(200);
+    expect(successBody(response).storeResolution).toEqual({ status: "not_found" });
+    // Nothing was selected, so nothing is filtered. An emptied list would read as "not stocked
+    // here", which is a stock claim about a store that was never identified.
+    expect(storeIds(response)).toHaveLength(3);
+    expect(successBody(response).storeResolution).not.toHaveProperty("selectedStore");
+  });
+
+  it("reports ambiguous with both Berlin branches as candidates", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", store: "Berlin" });
+
+    expect(response.status).toBe(200);
+    expect(successBody(response).storeResolution).toEqual({
+      status: "ambiguous",
+      query: "Berlin",
+      candidates: [
+        {
+          storeId: "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+          warehouseName: "Manufactum Berlin",
+          address: "Hardenbergstraße 4-5, 10623 Berlin",
+        },
+        {
+          storeId: "MANUFACTUM_BERLIN_KGA",
+          warehouseName: "Manufactum Berlin KaDeWe",
+          address: "Tauentzienstraße 21-24, 10789 Berlin",
+        },
+      ],
+    });
+    // No branch was chosen, so no `selectedStore` is offered for one to be read from.
+    expect(successBody(response).storeResolution).not.toHaveProperty("selectedStore");
+  });
+
+  it("matches and filters when a store query resolves to exactly one branch", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", store: "München" });
+
+    expect(successBody(response).storeResolution).toEqual({
+      status: "matched",
+      query: "München",
+      selectedStore: {
+        storeId: "MANUFACTUM_MUENCHEN",
+        warehouseName: "Manufactum München",
+        address: "Dienerstraße 12, 80331 München",
+      },
+    });
+    expect(storeIds(response)).toEqual(["MANUFACTUM_MUENCHEN"]);
+  });
+
+  it("matches the transliterated spelling of an umlaut city", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", store: "muenchen" });
+
+    expect(successBody(response).storeResolution).toMatchObject({
+      status: "matched",
+      selectedStore: { storeId: "MANUFACTUM_MUENCHEN" },
+    });
+  });
+
+  it("reports not_found with the echoed query for an unknown store", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", store: "Hamburg" });
+
+    expect(response.status).toBe(200);
+    expect(successBody(response).storeResolution).toEqual({
+      status: "not_found",
+      query: "Hamburg",
+    });
+    expect(storeIds(response)).toHaveLength(3);
+  });
+
+  it("treats the deprecated warehouseId exactly like storeId", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const viaAlias = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", warehouseId: "MANUFACTUM_BERLIN_KGA" });
+    const viaStoreId = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_BERLIN_KGA" });
+
+    expect(viaAlias.status).toBe(200);
+    // Byte-for-byte identical: the alias is a spelling, not a second behavior.
+    expect(viaAlias.body).toEqual(viaStoreId.body);
+    expect(successBody(viaAlias).storeResolution).toMatchObject({
+      status: "matched",
+      selectedStore: { storeId: "MANUFACTUM_BERLIN_KGA" },
+    });
+    expect(storeIds(viaAlias)).toEqual(["MANUFACTUM_BERLIN_KGA"]);
+  });
+
+  it("reports not_found for an unknown warehouseId, as it does for an unknown storeId", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", warehouseId: "MANUFACTUM_NOWHERE" });
+
+    expect(successBody(response).storeResolution).toEqual({ status: "not_found" });
+    expect(storeIds(response)).toHaveLength(3);
+  });
+
+  it("never echoes the deprecated parameter name back in the response", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", warehouseId: "MANUFACTUM_BERLIN_KGA" });
+
+    // The alias collapses at the validation boundary. A response that named it would keep the
+    // deprecated spelling alive in a second place.
+    expect(JSON.stringify(response.body)).not.toContain("warehouseFilterApplied");
+    expect(successBody(response).storeResolution).not.toHaveProperty("warehouseId");
+  });
+
+  it.each([
+    ["ambiguous", { q: "senf", store: "Berlin" }],
+    ["not_found via store", { q: "senf", store: "Hamburg" }],
+    ["not_found via storeId", { q: "senf", storeId: "MANUFACTUM_NOWHERE" }],
+    ["not_found via the deprecated warehouseId", { q: "senf", warehouseId: "MANUFACTUM_NOWHERE" }],
+  ])("leaves availability complete and unfiltered when resolution is %s", async (_label, query) => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app).get("/api/products/search").query(query);
+    const unselected = await request(app).get("/api/products/search").query({ q: "senf" });
+
+    expect(response.status).toBe(200);
+    expect(["ambiguous", "not_found"]).toContain(successBody(response).storeResolution.status);
+
+    // No store was unambiguously selected, so this list is NOT availability at a chosen store — it
+    // is every store's availability, exactly as an unselected request returns it. Filtering it
+    // would attribute one branch's stock to a branch that was never identified; emptying it would
+    // manufacture the `availability: []` shape a consumer reads as "not stocked at your store".
+    expect(successBody(response).products[0]?.availability).toEqual(
+      successBody(unselected).products[0]?.availability,
+    );
+    expect(storeIds(response)).toEqual([
+      "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+      "MANUFACTUM_BERLIN_KGA",
+      "MANUFACTUM_MUENCHEN",
+    ]);
+    // And no store is offered as the selected one for a consumer to read stock against.
+    expect(successBody(response).storeResolution).not.toHaveProperty("selectedStore");
+  });
+
+  it("never sends a store parameter upstream", async () => {
+    const { app, calls } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    await request(app).get("/api/products/search").query({ q: "senf", store: "Berlin" });
+    await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_BERLIN_KGA" });
+
+    await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", warehouseId: "MANUFACTUM_BERLIN_KGA" });
+
+    for (const call of calls) {
+      expect(call.url.searchParams.has("warehouse")).toBe(false);
+      expect(call.url.searchParams.has("store")).toBe(false);
+      expect(call.url.searchParams.has("storeId")).toBe(false);
+      expect(call.url.searchParams.has("warehouseId")).toBe(false);
+    }
+  });
+
+  it.each([
+    ["no store selection", { q: "senf", limit: "2" }],
+    ["a matched store", { q: "senf", limit: "2", storeId: "MANUFACTUM_BERLIN_KGA" }],
+    ["an ambiguous store", { q: "senf", limit: "2", store: "Berlin" }],
+    ["an unknown store", { q: "senf", limit: "2", store: "Hamburg" }],
+  ])("limits the number of products, not availability entries, with %s", async (_label, query) => {
+    const twoProducts = {
+      ...MULTI_STORE_BODY,
+      result_count: 2,
+      products: [
+        MULTI_STORE_BODY.products[0],
+        { ...MULTI_STORE_BODY.products[0], sku: "218468", name: "Moutarde à l'ancienne" },
+      ],
+    };
+    const { app, calls } = createTestApp(jsonResponse(twoProducts));
+
+    const response = await request(app).get("/api/products/search").query(query);
+
+    expect(response.status).toBe(200);
+    // limit still governs products alone, and is still what gets forwarded upstream.
+    expect(calls[0]?.url.searchParams.get("limit")).toBe("2");
+    expect(successBody(response).products).toHaveLength(2);
+    expect(successBody(response).resultCount).toBe(2);
   });
 });
 

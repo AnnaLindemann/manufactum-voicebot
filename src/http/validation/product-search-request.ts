@@ -24,11 +24,34 @@ const limitSchema = z
   .transform((value) => Number(value))
   .pipe(z.number().int().min(MIN_LIMIT).max(MAX_LIMIT));
 
-const productSearchQuerySchema = z.object({
-  q: z.string().trim().min(1).max(200),
-  warehouseId: z.string().trim().min(1).max(64).optional(),
-  limit: limitSchema.optional(),
-});
+const MAX_STORE_QUERY_LENGTH = 120;
+const MAX_STORE_ID_LENGTH = 64;
+
+const productSearchQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).max(200),
+    store: z.string().trim().min(1).max(MAX_STORE_QUERY_LENGTH).optional(),
+    storeId: z.string().trim().min(1).max(MAX_STORE_ID_LENGTH).optional(),
+    /**
+     * Deprecated compatibility alias for `storeId`, validated identically so an existing caller
+     * cannot get a laxer rule by using the older spelling. New clients must send `storeId`.
+     */
+    warehouseId: z.string().trim().min(1).max(MAX_STORE_ID_LENGTH).optional(),
+    limit: limitSchema.optional(),
+  })
+  // At most one store selector. They express the same intent by different means, and honouring one
+  // silently would make the response answer a question the caller did not ask. Rejected outright
+  // rather than ranked — including `storeId` with its own alias, where a caller sending both
+  // conflicting values has no defensible winner.
+  .refine(
+    ({ store, storeId, warehouseId }) =>
+      [store, storeId, warehouseId].filter((selector) => selector !== undefined).length <= 1,
+    {
+      message:
+        "store, storeId, and warehouseId are mutually exclusive; supply at most one. " +
+        "warehouseId is a deprecated alias for storeId.",
+    },
+  );
 
 /**
  * @throws {AppError} `INVALID_REQUEST` when the query string does not satisfy the contract.
@@ -41,11 +64,16 @@ export function parseProductSearchRequest(query: unknown): ProductSearchQuery {
     throw new AppError("INVALID_REQUEST", z.prettifyError(result.error));
   }
 
-  const { q, warehouseId, limit } = result.data;
+  const { q, store, storeId, warehouseId, limit } = result.data;
+
+  // The alias collapses into `storeId` here, at the boundary. Nothing downstream knows the older
+  // spelling exists, so the deprecated name has exactly one place to be removed from later.
+  const resolvedStoreId = storeId ?? warehouseId;
 
   return {
     q,
-    ...(warehouseId === undefined ? {} : { warehouseId }),
+    ...(store === undefined ? {} : { store }),
+    ...(resolvedStoreId === undefined ? {} : { storeId: resolvedStoreId }),
     limit: limit ?? DEFAULT_LIMIT,
   };
 }

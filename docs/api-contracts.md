@@ -2,11 +2,13 @@
 
 ## Status
 
-The MVP product-search contract below is **agreed** and derived from completed Phase 1 discovery.
+`GET /health` and `GET /api/products/search` are **implemented and live**. The contract below
+describes what the code actually does; where it does not, the code is the defect.
 
-All other endpoints in this document remain **provisional** and out of MVP scope. They are retained
-as roadmap intent only. No contract for them may be designed until the corresponding upstream
-capability has been observed, per `D-011`.
+Every other endpoint in this document is **planned / not implemented**. None has an observed
+upstream capability, none has a route, and a request to any of them returns the `NOT_FOUND` envelope
+from the catch-all 404 handler. They are roadmap intent only and must not be described to a consumer
+as available. See "Planned — not implemented" at the end of this document for the full list.
 
 ## Evidence notation
 
@@ -29,29 +31,63 @@ paths exist because the backend must not fail unsafely, not because upstream was
 
 ## GET /health
 
-Returns service status. Implemented in Phase 0. Unchanged by this contract.
+**Implemented.** Returns service status. Built in Phase 0. Unchanged by this contract.
 
 ---
 
 ## GET /api/products/search
 
-The single internal endpoint of the MVP.
+**Implemented.** The single internal endpoint of the MVP.
 
 `[E]` Exactly one upstream endpoint has been observed: `GET /search`, authenticated with an
 `x-api-key` request header.
 
 `[D]` One internal route is defined per observed upstream capability. Nothing else is contracted.
 
-`[D]` This route does not exist yet. Phase 2 defines this contract as documentation only. The route,
-the upstream client, and its tests are built in Phase 3. See "Phase boundary" below.
-
 ### Request
 
 | Field         | Type    | Required | Rule                                                           | Basis                                                                                     |
 | ------------- | ------- | -------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `q`           | string  | yes      | trimmed; length 1–200 after trimming; whitespace-only rejected | `[E]` empty `q` is rejected upstream (EXP-011); `[D]` the 200 ceiling is ours             |
-| `warehouseId` | string  | no       | trimmed; length 1–64; opaque, no format validation             | `[E]` two identifier formats accepted (EXP-005); unknown values do not error (EXP-006)    |
+| `store`       | string  | no       | trimmed; length 1–120; human-readable store or city query      | `[D]` resolved locally; has no upstream counterpart                                       |
+| `storeId`     | string  | no       | trimmed; length 1–64; an exact `warehouseId`                   | `[D]` resolved locally; matched against `warehouse_id` values in the response             |
+| `warehouseId` | string  | no       | **deprecated** alias for `storeId`; identical rule             | `[D]` compatibility only; see below                                                       |
 | `limit`       | integer | no       | integer; minimum 1; maximum 5; default 5                       | `[E]` a non-integer is rejected upstream (EXP-017); `[D]` the 1–5 window is entirely ours |
+
+#### At most one store selector
+
+`[D]` `store`, `storeId`, and `warehouseId` are **mutually exclusive**. Supplying any two is
+`INVALID_REQUEST` with HTTP `400`, the standard envelope, and no upstream call.
+
+`[D]` This includes `storeId` together with its own alias `warehouseId`, **even when the two carry
+the same value**. Agreement would be luck, and the rule a caller has to reason about should not
+depend on whether two values happen to coincide.
+
+`[D]` No selector is ranked above another and none is silently dropped. Each expresses the same
+intent by different means, so honouring one would make the response answer a question the caller did
+not ask.
+
+#### `warehouseId` — deprecated compatibility alias
+
+`[D]` `warehouseId` is a **deprecated compatibility alias for `storeId`**, retained so existing
+callers do not break. **New clients must use `storeId`.**
+
+`[D]` It is validated identically — trimmed, 1–64 characters — so the older spelling is never a way
+around a current rule, and it is subject to the same mutual-exclusion rule above.
+
+`[D]` When supplied, it takes **exactly the same local resolution path as `storeId`**: it is matched
+verbatim against the `warehouseId` values present in the response, produces the same
+`storeResolution` statuses, and filters `availability` under the same conditions. There is no
+behavioral difference of any kind; a request differing only in this parameter name returns an
+identical body.
+
+`[D]` The alias collapses into `storeId` at the validation boundary. Nothing downstream of validation
+knows the older spelling exists, and no response field ever names it. That keeps the deprecated name
+in one place, so removing it later is a single deletion rather than an audit.
+
+`[D]` What did **not** survive: `warehouseId` no longer means "pass this to upstream as `warehouse`".
+The parameter name is kept; the mechanism behind it changed for every caller. See "Store selection"
+below for why.
 
 #### Observed upstream `limit` behavior
 
@@ -81,13 +117,9 @@ count never depends on an unobserved upstream default.
 input becomes `INVALID_REQUEST` and **never reaches upstream**. The backend does not use upstream as
 a validator.
 
-`[D]` `warehouseId` is passed through verbatim as the upstream `warehouse` parameter. No phone-number
-normalization is performed in the MVP; that belongs to the store registry in Phase 4.
-
 #### Fields removed from the earlier provisional contract
 
 `[D]` `mode` — no upstream counterpart was observed.
-`[D]` `storeId` — implies a store registry, which does not exist.
 
 ### Response — success
 
@@ -97,17 +129,17 @@ HTTP `200`.
 {
   "query": "senf",
   "resultCount": 2,
-  "warehouseFilterApplied": true,
+  "storeResolution": { "status": "not_requested" },
   "products": []
 }
 ```
 
-| Field                    | Type        | Basis | Meaning                                                                                                                                 |
-| ------------------------ | ----------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `query`                  | string      | `[E]` | Observed upstream `query`.                                                                                                              |
-| `resultCount`            | number      | `[E]` | Observed upstream `result_count`.                                                                                                       |
-| `warehouseFilterApplied` | boolean     | `[D]` | Records only whether a `warehouseId` was supplied and therefore sent upstream. It asserts nothing about whether upstream recognized it. |
-| `products`               | `Product[]` | `[E]` | Observed upstream `products`.                                                                                                           |
+| Field             | Type              | Basis | Meaning                                                 |
+| ----------------- | ----------------- | ----- | ------------------------------------------------------- |
+| `query`           | string            | `[E]` | Observed upstream `query`.                              |
+| `resultCount`     | number            | `[E]` | Observed upstream `result_count`.                       |
+| `storeResolution` | `StoreResolution` | `[D]` | The outcome of the caller's store selection. See below. |
+| `products`        | `Product[]`       | `[E]` | Observed upstream `products`.                           |
 
 #### Product
 
@@ -187,7 +219,15 @@ MVP returns the ranked list as received while making no exactness claim.
 
 `[D]` `onlineAvailabilitySupported` — would hardcode a claim about a capability observed neither way.
 
-`[D]` `selectedStore` — requires the store registry, which does not exist.
+`[D]` `warehouseFilterApplied` — **removed and not restored.** It recorded whether a `warehouseId`
+had been supplied and sent upstream. No store parameter is sent upstream any more, so the field's
+documented meaning became false, and a boolean could not express `ambiguous` in any case.
+`storeResolution` replaces it and says strictly more.
+
+`[D]` It is deliberately **not** reintroduced alongside the deprecated `warehouseId` alias. The
+alias keeps an old parameter name working; it does not resurrect an old response field whose meaning
+no longer holds. A consumer needing the old signal derives it as
+`storeResolution.status === "matched"`, which is the honest form of the same question.
 
 #### No evidence exists
 
@@ -255,34 +295,142 @@ maps to `unknown` rather than failing the response, as described above.
 a normal outcome, not an error. No error envelope is returned and the status code stays `200`, so a
 consumer can distinguish "no products found" from "system failure" by status code alone.
 
-### Empty availability and the unknown-warehouse ambiguity
+### Store selection
 
-`[E]` An unknown `warehouse` value returns HTTP `200` with the matching product and
-`warehouse_availability: []` (EXP-006).
+`[D]` A caller may narrow a search to one store, by human-readable name or city (`store`) or by
+exact identifier (`storeId`, or its deprecated alias `warehouseId`). The outcome is always reported
+in `storeResolution`, and **only a `matched` outcome narrows anything**.
 
-`[E]` A real warehouse holding no stock also returns availability entries with `status: "OUT_OF_STOCK"`
-and `stock: 0` (EXP-015). But an unknown warehouse and a warehouse for which upstream simply returned
-nothing are **shape-identical**: both are an empty array.
+#### Resolution is local, not upstream
 
-`[D]` The contract does not attempt to distinguish them. When no availability is returned, the
-response carries exactly two signals and no more:
+`[E]` Upstream accepts a `warehouse` parameter and returns only that store's availability (EXP-005).
+`[E]` Omitting it returns availability for every store — 17 in one observation (EXP-004).
 
-- `warehouseFilterApplied` — whether a `warehouseId` was sent;
-- `availability: []` — that no availability entries came back.
+`[D]` **No store parameter is sent upstream.** The backend always requests the unfiltered response
+and resolves the selection itself against the availability entries it receives.
 
-`[D]` No reason code or explanatory flag accompanies an empty array. Any such field would dress an
-unresolved ambiguity in the language of an explanation, and a consumer would reasonably read it as a
-finding.
+`[D]` Rationale: a response already filtered upstream has the non-matching stores removed, so there
+is nothing left to disambiguate `Berlin` against and no way to tell an unknown identifier from a
+known one. `ambiguous` and `not_found` are only expressible against the full list. This is also what
+finally resolves Phase 1 architecture-review finding 4 — see "The unknown-warehouse ambiguity" below.
 
-`[D]` **`availability: []` never means "out of stock."** It means only that no availability entries
-were returned. It must not be rendered to a caller as "not in stock at your store" or as any other
-stock claim. A consumer that must say something has to ask for clarification or escalate.
+`[D]` Consequence: the store universe is **the stores present in this response**, not a registry. A
+store that stocks none of the matched products is not a candidate, and a response with
+`resultCount: 0` has no candidates at all, so any selection against it resolves to `not_found`.
 
-`[D]` Out-of-stock is expressed one way only: an availability entry that is actually present and
-carries `status: "out_of_stock"`.
+#### Store
 
-This limitation is recorded as Phase 1 architecture-review finding 4. It resolves in Phase 4, when a
-store registry can validate a warehouse identifier before the upstream call is made.
+```ts
+type Store = {
+  storeId: string; // the availability entry's warehouseId
+  warehouseName: string;
+  address: string | null;
+};
+```
+
+`[D]` These three fields and no others. A `Store` is a place; it carries no stock information, so it
+can never be mistaken for an availability claim. Stores are deduplicated by `storeId` and listed in
+order of first appearance.
+
+#### StoreResolution
+
+```ts
+type StoreResolution =
+  | { status: "not_requested" }
+  | { status: "matched"; query?: string; selectedStore: Store }
+  | { status: "ambiguous"; query: string; candidates: Store[] }
+  | { status: "not_found"; query?: string };
+```
+
+`[D]` `query` is the caller's `store` text, echoed verbatim and untrimmed of its casing. It is
+present **only when `store` was supplied** — a `storeId` lookup was an exact identifier, not a text
+query, so echoing one would invent a search term the caller never spoke.
+
+| `status`        | When                                            | `availability` is                                    |
+| --------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| `not_requested` | No store selector was supplied.                 | Unfiltered — every store, as before.                 |
+| `matched`       | Exactly one store resolved.                     | **Filtered to that store**, possibly `[]`.           |
+| `ambiguous`     | A `store` query matched more than one store.    | Unfiltered — every store. Not the requested store's. |
+| `not_found`     | Nothing matched the selector that was supplied. | Unfiltered — every store. Not the requested store's. |
+
+`[D]` **Only `matched` filters.** `ambiguous` and `not_found` selected no store, so there is nothing
+to filter to. The full, unfiltered list is returned and `storeResolution` states plainly that no
+branch was chosen.
+
+##### Under `ambiguous` and `not_found`, `availability` is not availability at the requested store
+
+`[D]` This is the load-bearing rule of the whole section. When `status` is `ambiguous` or
+`not_found`, the `availability` entries are **every store's availability**, byte-for-byte what a
+request with no store selection returns. They are **not** stock at the store the caller asked about,
+because no store was unambiguously selected — there is no such store to report on.
+
+`[D]` A consumer **must not** read these entries as an answer to "do you have it at my branch?". The
+only correct handling is to resolve the store first: offer `candidates` for `ambiguous`, or ask
+again for `not_found`. Speaking a stock state from this list would attribute one branch's stock — or
+several branches' — to a branch that was never identified.
+
+`[D]` Two alternatives were considered and rejected:
+
+- **Emptying `availability`.** `availability: []` already means "no entries were returned", and
+  manufacturing it here would hand a consumer the exact shape it reads as "not stocked at your
+  store" about a store that was never identified. That is the single worst failure mode in
+  `test-strategy.md`: a confident, wrong, spoken stock claim.
+- **Returning the full list under a `matched` status.** This would attribute every store's stock to
+  one branch, and hides the ambiguity instead of reporting it.
+
+`[D]` The status field is therefore the only safe gate. A consumer that filters, speaks, or
+aggregates `availability` without first checking `storeResolution.status === "matched"` is
+misreading this contract.
+
+#### Matching rules for `store`
+
+`[D]` Case-insensitive and normalized. Both the query and the store's `warehouseName` and `address`
+are folded to lowercase, German umlauts are expanded as German expands them (`ä` → `ae`, `ß` → `ss`),
+remaining diacritics are stripped, and runs of non-alphanumerics collapse to single spaces.
+
+`[D]` The umlaut expansion runs **before** the diacritic strip. Stripping first would make `München`
+normalize to `munchen` and `Muenchen` to `muenchen`, and the two spellings would not match. `[E]`
+Upstream was observed to treat both spellings of `Bewässerungstopf` as the same query (EXP-015,
+EXP-016), so a caller may reasonably use either.
+
+`[D]` Matching is **whole-token containment**, not raw substring containment: `Berlin` matches
+`Manufactum Berlin` and an address in `10623 Berlin`, but `Bern` does not match `Berlin`. Offering a
+caller the wrong branch is the failure this step exists to prevent.
+
+`[D]` `storeId`, by contrast, is compared **verbatim**. It is a technical identifier, and a
+case-insensitive comparison of identifiers would invent a tolerance that has not been observed.
+
+`[D]` Example: `store=Berlin` against a response containing both
+`MANUFACTUM_BERLIN_HAUS_HADENBERG` and `MANUFACTUM_BERLIN_KGA` is `ambiguous` with two candidates.
+It is never resolved by picking the first.
+
+#### `limit` is unaffected
+
+`[D]` Store selection narrows `availability` **within** a product. It never removes a product, so
+`limit` still bounds exactly what it bounded before — the number of products — and `resultCount`
+remains the upstream product count.
+
+### The unknown-warehouse ambiguity
+
+`[E]` An unknown `warehouse` value sent upstream returns HTTP `200` with the matching product and
+`warehouse_availability: []` (EXP-006). `[E]` A real warehouse holding no stock also returns entries
+with `status: "OUT_OF_STOCK"` and `stock: 0` (EXP-015). Sent upstream, the two are shape-identical.
+
+`[D]` Local resolution removes this ambiguity for the caller-facing contract. An unrecognized
+`storeId` is now reported as `storeResolution.status: "not_found"` **before** any filtering, and is
+therefore distinguishable from a store that resolved but carries none of the matched products —
+which returns `matched` with `availability: []`.
+
+`[D]` What remains unchanged: **`availability: []` never means "out of stock."** It means only that
+no availability entries were returned. It must not be rendered as "not in stock at your store" or as
+any other stock claim. A consumer that must say something has to ask for clarification or escalate.
+
+`[D]` No reason code or explanatory flag accompanies an empty array. Out-of-stock is expressed one
+way only: an availability entry that is actually present and carries `status: "out_of_stock"`.
+
+`[D]` Phase 1 architecture-review finding 4 is closed by this change. A store **registry** — stores
+that exist independently of a search result — remains future work, and `GET /api/stores` and
+`GET /api/stores/resolve` remain unimplemented.
 
 ---
 
@@ -447,11 +595,17 @@ HTTP response body
    Removing `checkedAt` from the response removed the mapper's only reason to touch time, so it is now
    deterministic by construction.
 4. Nothing is invented. Every field in the public contract traces to an observed upstream field,
-   except `warehouseFilterApplied` and `correlationId`, which are internal and documented as `[D]`.
+   except `storeResolution` and `correlationId`, which are internal and documented as `[D]`.
+5. Store resolution is a pure domain function (`src/domain/store-resolution.ts`): total, no I/O, no
+   clock. Like the mapper, it cannot throw, so it has no failure path that could bypass the contract.
 
 ---
 
-## Phase boundary
+## Phase boundary — historical
+
+This section records how the contract and its implementation were sequenced. Both phases are
+complete; it is kept for traceability and is not a statement about what exists today. For that, see
+"Status" at the top.
 
 `[D]` **Phase 2 produces this documented contract and nothing else.** No route, no schema code, no
 client, no middleware, and no tests are created in Phase 2. `roadmap.md` defines the Phase 2
@@ -474,23 +628,33 @@ Phase 3, in the same phase as the first API route and before any real product da
 
 ---
 
-## Provisional — not in MVP scope
+## Planned — not implemented
 
-The endpoints below are roadmap intent only. None has an observed upstream capability. No contract for
-any of them may be designed until discovery proves the capability exists, per `D-011`.
+**None of the endpoints below exists.** No route is registered for any of them, so each returns the
+`NOT_FOUND` envelope with HTTP `404` from the catch-all handler. None has an observed upstream
+capability. No contract for any of them may be designed until discovery proves the capability exists,
+per `D-011`.
+
+They are listed as roadmap intent. They must not be described to a consumer, or to Dialfire, as
+available, and nothing in this document should be read as a specification of their behavior.
 
 ```text
-GET    /api/products/:productId
-GET    /api/products/:productId/availability
-GET    /api/products/:productId/alternatives
-GET    /api/stores
-GET    /api/stores/resolve
-POST   /api/reservations
-GET    /api/reservations/:reservationId
-DELETE /api/reservations/:reservationId
-POST   /api/links/send
-POST   /api/rag/query
+GET    /api/products/:productId              planned — not implemented
+GET    /api/products/:productId/availability planned — not implemented
+GET    /api/products/:productId/alternatives planned — not implemented
+GET    /api/stores                           planned — not implemented
+GET    /api/stores/resolve                   planned — not implemented
+POST   /api/reservations                     planned — not implemented
+GET    /api/reservations/:reservationId      planned — not implemented
+DELETE /api/reservations/:reservationId      planned — not implemented
+POST   /api/links/send                       planned — not implemented
+POST   /api/rag/query                        planned — not implemented
 ```
+
+`[D]` `GET /api/stores/resolve` in particular is **not** the mechanism behind the `store` parameter
+of `GET /api/products/search`. That parameter is resolved inline, against the availability entries of
+the search response, and needs no store registry. A standalone resolve endpoint would require stores
+to exist independently of a search result, which is exactly the registry that does not exist yet.
 
 The request and response shapes previously sketched here for `/api/stores/resolve`,
 `/api/reservations`, and `/api/rag/query` have been removed. They described no observed capability,

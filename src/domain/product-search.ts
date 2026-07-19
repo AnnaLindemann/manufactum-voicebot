@@ -8,8 +8,16 @@
 /** A validated search request. Only this shape reaches the application service and the client. */
 export type ProductSearchQuery = {
   q: string;
-  /** Opaque; passed through verbatim as the upstream `warehouse` parameter. */
-  warehouseId?: string;
+  /**
+   * A human-readable store or city query, e.g. `"Berlin"`. Resolved locally against the availability
+   * entries of the upstream response; never sent upstream. Mutually exclusive with `storeId`.
+   */
+  store?: string;
+  /**
+   * An exact `warehouseId`. Resolved locally against the availability entries of the upstream
+   * response; never sent upstream. Mutually exclusive with `store`.
+   */
+  storeId?: string;
   /** Always resolved during validation, so `limit` is sent upstream explicitly even at its default. */
   limit: number;
 };
@@ -52,11 +60,36 @@ export type ProductSearchResult = {
   products: Product[];
 };
 
-/** The public response body, adding only the internal `warehouseFilterApplied` signal. */
+/**
+ * The minimal identity of a store, projected from the availability entries of the upstream
+ * response. It carries no stock information: a store is a place, not a stock claim.
+ */
+export type Store = {
+  /** The `warehouseId` of the availability entries this store was projected from. */
+  storeId: string;
+  warehouseName: string;
+  address: string | null;
+};
+
+/** The query text a resolution was attempted with. Present only when `store` was supplied. */
+type ResolutionQuery = { query?: string };
+
+/**
+ * The outcome of resolving the caller's store selection against the stores actually present in this
+ * response. Each status is a distinct, non-overlapping situation, and only `matched` licenses
+ * filtering `availability` down to one store.
+ */
+export type StoreResolution =
+  /** Neither `store` nor `storeId` was supplied; `availability` lists every store as before. */
+  | { status: "not_requested" }
+  /** Exactly one store matched. `availability` is filtered to it. */
+  | ({ status: "matched"; selectedStore: Store } & ResolutionQuery)
+  /** More than one store matched. No store is selected, so nothing is filtered. */
+  | { status: "ambiguous"; query: string; candidates: Store[] }
+  /** No store matched. No store is selected, so nothing is filtered. */
+  | ({ status: "not_found" } & ResolutionQuery);
+
+/** The public response body, adding only the internal `storeResolution` signal. */
 export type ProductSearchResponse = ProductSearchResult & {
-  /**
-   * Records only whether a `warehouseId` was supplied and therefore sent upstream. It asserts
-   * nothing about whether upstream recognized it.
-   */
-  warehouseFilterApplied: boolean;
+  storeResolution: StoreResolution;
 };

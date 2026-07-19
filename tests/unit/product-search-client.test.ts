@@ -50,21 +50,29 @@ async function expectErrorCode(promise: Promise<unknown>, code: string): Promise
 }
 
 describe("createProductSearchClient", () => {
-  it("sends q and limit, and sends warehouse only when supplied", async () => {
+  it("sends q and limit, and never sends a store parameter upstream", async () => {
     const { client, calls } = createClient(jsonResponse(VALID_BODY));
 
     await client({ q: "senf", limit: 5 }, createRecordingContext("cid-1"));
     await client(
-      { q: "senf", warehouseId: "493024033844", limit: 2 },
+      { q: "senf", storeId: "MANUFACTUM_BERLIN_HAUS_HADENBERG", limit: 2 },
       createRecordingContext("cid-2"),
     );
+    await client({ q: "senf", store: "Berlin", limit: 2 }, createRecordingContext("cid-3"));
 
     expect(calls[0]?.url.pathname).toBe("/search");
     expect(calls[0]?.url.searchParams.get("q")).toBe("senf");
     // limit is always explicit, so the result count never depends on an unobserved upstream default.
     expect(calls[0]?.url.searchParams.get("limit")).toBe("5");
-    expect(calls[0]?.url.searchParams.has("warehouse")).toBe(false);
-    expect(calls[1]?.url.searchParams.get("warehouse")).toBe("493024033844");
+
+    // Store selection is resolved locally, so the upstream call is identical with or without it.
+    // Upstream returns every store's availability only when `warehouse` is omitted (EXP-004), and
+    // that full list is what an ambiguous or unmatched selection has to be resolved against.
+    for (const call of calls) {
+      expect(call.url.searchParams.has("warehouse")).toBe(false);
+      expect(call.url.searchParams.has("store")).toBe(false);
+      expect(call.url.searchParams.has("storeId")).toBe(false);
+    }
   });
 
   it("authenticates with the configured header", async () => {

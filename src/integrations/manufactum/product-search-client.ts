@@ -32,10 +32,9 @@ function buildUrl(config: ManufactumConfig, request: ProductSearchQuery): URL {
   // unobserved upstream default.
   url.searchParams.set("limit", String(request.limit));
 
-  if (request.warehouseId !== undefined) {
-    // Passed through verbatim; the MVP performs no phone-number normalization.
-    url.searchParams.set("warehouse", request.warehouseId);
-  }
+  // No store parameter is sent upstream. Store selection is resolved locally against the full
+  // availability list, which upstream only returns when `warehouse` is omitted (EXP-004). Filtering
+  // upstream would remove the very entries a `store` query has to be disambiguated against.
 
   return url;
 }
