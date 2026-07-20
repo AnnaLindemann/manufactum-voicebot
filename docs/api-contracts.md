@@ -332,12 +332,57 @@ type Store = {
 can never be mistaken for an availability claim. Stores are deduplicated by `storeId` and listed in
 order of first appearance.
 
+`[D]` This is the shape used for `ambiguous` **candidates**. The only open question there is which
+branch the caller means, and name and address answer it.
+
+#### SelectedStore
+
+```ts
+type SelectedStore = Store & {
+  phone: string | null;
+  openingHours: Record<string, string>;
+};
+```
+
+`[D]` The shape of `selectedStore` under a `matched` outcome, and **only** there.
+
+| Field          | Upstream source | Basis | Notes                                                                        |
+| -------------- | --------------- | ----- | ---------------------------------------------------------------------------- |
+| `phone`        | `phone`         | `[E]` | Verbatim, e.g. `"+49 30 24033844"`. `null` when upstream returned none.      |
+| `openingHours` | `opening_hours` | `[E]` | Verbatim weekday map, e.g. `{ "Montag": "10:00 - 20:00 Uhr" }`. May be `{}`. |
+
+`[D]` Both are the same observed availability-entry fields already exposed inside `availability`.
+Nothing new is fetched, derived, or computed: this is a **projection**, and no additional upstream
+call is made for it.
+
+`[D]` A `SelectedStore` is still a place, not a stock claim. `status` and `stock` describe one
+product at that store rather than the store itself, and are deliberately **not** part of this shape.
+They remain in `availability`, behind the `storeResolution` gate described below.
+
+`[D]` **Projected from the unfiltered availability entries.** Store resolution runs before
+`availability` is narrowed, so `phone` and `openingHours` are present even when filtering leaves a
+product with `availability: []` because the selected branch does not carry it. A caller asking when
+that branch closes is asking about the branch, not about the product, and that question must not
+become unanswerable because of which product was searched for.
+
+`[D]` Where a store appears more than once across products, **first appearance wins** for every
+field, consistently with the existing deduplication by `storeId`. Nothing reconciles two entries
+that disagree about the same branch's details.
+
+`[D]` `openingHours` is a plain weekday map and carries **no notion of today, no dates, no holidays,
+and no timezone**. This backend reads no clock anywhere. A consumer that wants "today" resolves the
+weekday itself, and must not present a weekday value as covering a holiday or a special date.
+
+`[D]` Candidates under `ambiguous` are **not** enriched this way. Contact details for several
+branches at once are data the caller cannot act on before choosing one, and every field handed to a
+consumer is a field it may end up speaking.
+
 #### StoreResolution
 
 ```ts
 type StoreResolution =
   | { status: "not_requested" }
-  | { status: "matched"; query?: string; selectedStore: Store }
+  | { status: "matched"; query?: string; selectedStore: SelectedStore }
   | { status: "ambiguous"; query: string; candidates: Store[] }
   | { status: "not_found"; query?: string };
 ```

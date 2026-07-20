@@ -1,4 +1,4 @@
-import type { Product, Store, StoreResolution } from "./product-search.js";
+import type { Product, SelectedStore, Store, StoreResolution } from "./product-search.js";
 
 /**
  * Store selection for `GET /api/products/search`, per `api-contracts.md` § Store selection.
@@ -57,10 +57,17 @@ export function normalizeStoreText(value: string): string {
  * `warehouseId`.
  *
  * Deduplication is by identifier alone: the same store reached through two products is one store,
- * and a caller offered the same branch twice would read it as two branches.
+ * and a caller offered the same branch twice would read it as two branches. First appearance also
+ * wins for the store's own details — the same branch reached through two products is expected to
+ * carry the same address, phone, and opening hours, and nothing here reconciles them if it does
+ * not.
+ *
+ * The projection deliberately stops at the place: `status` and `stock` describe one product at a
+ * store and are left in `availability`, where a consumer has to check `storeResolution` first to
+ * read them safely.
  */
-export function collectStores(products: Product[]): Store[] {
-  const storesById = new Map<string, Store>();
+export function collectStores(products: Product[]): SelectedStore[] {
+  const storesById = new Map<string, SelectedStore>();
 
   for (const product of products) {
     for (const entry of product.availability) {
@@ -69,12 +76,25 @@ export function collectStores(products: Product[]): Store[] {
           storeId: entry.warehouseId,
           warehouseName: entry.warehouseName,
           address: entry.address,
+          phone: entry.phone,
+          openingHours: entry.openingHours,
         });
       }
     }
   }
 
   return [...storesById.values()];
+}
+
+/**
+ * Narrows a store to the identity a caller needs while they are still choosing between branches.
+ *
+ * An `ambiguous` outcome asks exactly one question — which branch do you mean — and name and
+ * address answer it. Contact details for several branches at once are data the caller cannot act on
+ * until they have chosen, and every field handed to a consumer is a field it may end up speaking.
+ */
+function toCandidate({ storeId, warehouseName, address }: SelectedStore): Store {
+  return { storeId, warehouseName, address };
 }
 
 /**
@@ -123,7 +143,7 @@ export function resolveStoreSelection(
 
     if (candidates.length > 1) {
       return {
-        resolution: { status: "ambiguous", query: store, candidates },
+        resolution: { status: "ambiguous", query: store, candidates: candidates.map(toCandidate) },
         selectedStoreId: null,
       };
     }

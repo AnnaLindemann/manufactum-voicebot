@@ -336,9 +336,33 @@ describe("store selection", () => {
         storeId: "MANUFACTUM_BERLIN_KGA",
         warehouseName: "Manufactum Berlin KaDeWe",
         address: "Tauentzienstraße 21-24, 10789 Berlin",
+        phone: "+49 30 21010000",
+        openingHours: { Montag: "10:00 - 20:00 Uhr" },
       },
     });
     expect(storeIds(response)).toEqual(["MANUFACTUM_BERLIN_KGA"]);
+  });
+
+  it("describes the selected store as a place, never as a stock claim", async () => {
+    const { app } = createTestApp(jsonResponse(MULTI_STORE_BODY));
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_BERLIN_KGA" });
+
+    const { selectedStore } = successBody(response).storeResolution as {
+      selectedStore: Record<string, unknown>;
+    };
+
+    // Stock lives in `availability`, behind the storeResolution gate. A store that also carried a
+    // status would let a consumer speak one product's stock as a property of the branch.
+    expect(Object.keys(selectedStore).sort()).toEqual([
+      "address",
+      "openingHours",
+      "phone",
+      "storeId",
+      "warehouseName",
+    ]);
   });
 
   it("returns an empty availability list for a product the selected store does not carry", async () => {
@@ -361,6 +385,73 @@ describe("store selection", () => {
     // The store resolved, so filtering is legitimate; the product simply is not in Berlin's list.
     expect(successBody(response).storeResolution.status).toBe("matched");
     expect(storeIds(response)).toEqual(["MANUFACTUM_MUENCHEN"]);
+  });
+
+  it("still returns the selected store's phone and hours when it carries none of the products", async () => {
+    // Two products: one carried only in Munich, one only at Berlin KaDeWe. Selecting Berlin KaDeWe
+    // therefore leaves the first product with `availability: []` after filtering — while the
+    // branch's own contact details are still known, because they were observed on the second.
+    const { app } = createTestApp(
+      jsonResponse({
+        ...MULTI_STORE_BODY,
+        result_count: 2,
+        products: [
+          { ...MULTI_STORE_BODY.products[0], warehouse_availability: [MUNICH_UPSTREAM] },
+          {
+            ...MULTI_STORE_BODY.products[0],
+            sku: "27815",
+            name: "Schwerter Senf mit ganzen Körnern",
+            warehouse_availability: [BERLIN_KGA_UPSTREAM],
+          },
+        ],
+      }),
+    );
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_BERLIN_KGA" });
+
+    expect(response.status).toBe(200);
+
+    const body = successBody(response);
+
+    // The branch resolved and its details survive, so "when do you close?" is answerable.
+    expect(body.storeResolution).toEqual({
+      status: "matched",
+      selectedStore: {
+        storeId: "MANUFACTUM_BERLIN_KGA",
+        warehouseName: "Manufactum Berlin KaDeWe",
+        address: "Tauentzienstraße 21-24, 10789 Berlin",
+        phone: "+49 30 21010000",
+        openingHours: { Montag: "10:00 - 20:00 Uhr" },
+      },
+    });
+    // The product the branch does not carry keeps its empty list, which is still not a stock claim.
+    expect(body.products[0]?.availability).toEqual([]);
+    expect(body.products[1]?.availability).toHaveLength(1);
+  });
+
+  it("reports a null phone and an empty hours map rather than inventing either", async () => {
+    const { app } = createTestApp(
+      jsonResponse({
+        ...MULTI_STORE_BODY,
+        products: [
+          {
+            ...MULTI_STORE_BODY.products[0],
+            warehouse_availability: [{ ...MUNICH_UPSTREAM, phone: null, opening_hours: {} }],
+          },
+        ],
+      }),
+    );
+
+    const response = await request(app)
+      .get("/api/products/search")
+      .query({ q: "senf", storeId: "MANUFACTUM_MUENCHEN" });
+
+    expect(successBody(response).storeResolution).toMatchObject({
+      status: "matched",
+      selectedStore: { phone: null, openingHours: {} },
+    });
   });
 
   it("reports not_found for an unknown storeId without claiming the product is absent", async () => {
@@ -389,6 +480,8 @@ describe("store selection", () => {
     expect(successBody(response).storeResolution).toEqual({
       status: "ambiguous",
       query: "Berlin",
+      // Candidates stay the minimal identity: name and address are what choosing a branch needs,
+      // and no branch has been chosen yet.
       candidates: [
         {
           storeId: "MANUFACTUM_BERLIN_HAUS_HADENBERG",
@@ -420,6 +513,8 @@ describe("store selection", () => {
         storeId: "MANUFACTUM_MUENCHEN",
         warehouseName: "Manufactum München",
         address: "Dienerstraße 12, 80331 München",
+        phone: "+49 89 23545900",
+        openingHours: { Montag: "10:00 - 19:00 Uhr" },
       },
     });
     expect(storeIds(response)).toEqual(["MANUFACTUM_MUENCHEN"]);

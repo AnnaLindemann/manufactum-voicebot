@@ -11,13 +11,15 @@ function availability(
   warehouseId: string,
   warehouseName: string,
   address: string | null,
+  phone: string | null = null,
+  openingHours: Record<string, string> = {},
 ): Availability {
   return {
     warehouseId,
     warehouseName,
     address,
-    phone: null,
-    openingHours: {},
+    phone,
+    openingHours,
     status: "in_stock",
     stock: 1,
   };
@@ -27,16 +29,22 @@ const BERLIN_HARDENBERG = availability(
   "MANUFACTUM_BERLIN_HAUS_HADENBERG",
   "Manufactum Berlin",
   "Hardenbergstraße 4-5, 10623 Berlin",
+  "+49 30 24033844",
+  { Montag: "10:00 - 20:00 Uhr", Sonntag: "Geschlossen" },
 );
 const BERLIN_KGA = availability(
   "MANUFACTUM_BERLIN_KGA",
   "Manufactum Berlin KaDeWe",
   "Tauentzienstraße 21-24, 10789 Berlin",
+  "+49 30 21010000",
+  { Montag: "10:00 - 20:00 Uhr" },
 );
 const MUNICH = availability(
   "MANUFACTUM_MUENCHEN",
   "Manufactum München",
   "Dienerstraße 12, 80331 München",
+  "+49 89 23545900",
+  { Montag: "10:00 - 19:00 Uhr" },
 );
 
 function product(name: string, entries: Availability[]): Product {
@@ -87,14 +95,31 @@ describe("collectStores", () => {
     ]);
   });
 
-  it("projects only the minimal store identity, carrying no stock information", () => {
+  it("projects the store as a place, carrying no stock information", () => {
     expect(collectStores([product("a", [BERLIN_HARDENBERG])])).toEqual([
       {
         storeId: "MANUFACTUM_BERLIN_HAUS_HADENBERG",
         warehouseName: "Manufactum Berlin",
         address: "Hardenbergstraße 4-5, 10623 Berlin",
+        phone: "+49 30 24033844",
+        openingHours: { Montag: "10:00 - 20:00 Uhr", Sonntag: "Geschlossen" },
       },
     ]);
+  });
+
+  it("takes the store's details from its first appearance", () => {
+    const laterEntry = availability(
+      "MANUFACTUM_BERLIN_HAUS_HADENBERG",
+      "Manufactum Berlin",
+      "Hardenbergstraße 4-5, 10623 Berlin",
+      "+49 30 00000000",
+      { Montag: "geschlossen wegen Umbau" },
+    );
+
+    const [store] = collectStores([product("a", [BERLIN_HARDENBERG]), product("b", [laterEntry])]);
+
+    expect(store?.phone).toBe("+49 30 24033844");
+    expect(store?.openingHours).toEqual({ Montag: "10:00 - 20:00 Uhr", Sonntag: "Geschlossen" });
   });
 
   it("returns no stores for a response with no products", () => {
@@ -122,6 +147,8 @@ describe("resolveStoreSelection", () => {
         storeId: "MANUFACTUM_BERLIN_KGA",
         warehouseName: "Manufactum Berlin KaDeWe",
         address: "Tauentzienstraße 21-24, 10789 Berlin",
+        phone: "+49 30 21010000",
+        openingHours: { Montag: "10:00 - 20:00 Uhr" },
       },
     });
     // `query` belongs to a `store` lookup; an exact identifier was not a text query.
@@ -146,6 +173,8 @@ describe("resolveStoreSelection", () => {
     const { resolution, selectedStoreId } = resolveStoreSelection(PRODUCTS, { store: "Berlin" });
 
     expect(selectedStoreId).toBeNull();
+    // Candidates stay the minimal identity. The open question is which branch, and contact details
+    // for branches the caller has not chosen are data they cannot act on yet.
     expect(resolution).toEqual({
       status: "ambiguous",
       query: "Berlin",
