@@ -2,3 +2,6 @@ node_modules/
 dist/
 coverage/
 .claude/
+tests/fixtures/**/*.html
+# Dialfire agent scripts run in the Dialfire platform runtime, not the Node.js backend.
+dialfire/

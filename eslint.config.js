@@ -4,7 +4,10 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "coverage/**"],
+    // `dialfire/` holds Dialfire voice-platform agent scripts, not backend source. They run in the
+    // Dialfire runtime with its own globals (`temp`, `LOG`, `XTDate`, …) and must not be linted by
+    // the backend's TypeScript-oriented config.
+    ignores: ["dist/**", "coverage/**", "dialfire/**"],
   },
   js.configs.recommended,
   tseslint.configs.recommended,
