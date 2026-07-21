@@ -64,6 +64,26 @@ export function chunkKey(documentKey: string, documentVersion: number, chunkInde
   return `${documentKey}:v${documentVersion}:chunk-${paddedIndex}`;
 }
 
+/**
+ * Canonical normalized content of a whole page: every FAQ pair's `chunkContent` joined in original
+ * order. This is **version-independent** — it never includes a chunk key or a version number — so its
+ * hash is stable across versions and is exactly what change detection compares. `prepareDocument`
+ * builds the same string, so the two can never drift.
+ */
+function canonicalDocumentContent(items: readonly FaqItem[]): string {
+  return items.map(chunkContent).join(DOCUMENT_CONTENT_SEPARATOR);
+}
+
+/**
+ * The SHA-256 hex digest of a page's canonical normalized content, computed **without** a document
+ * version. The ingestion flow uses this for change detection before it decides a version number, so
+ * versioned chunk keys are only ever generated once a new version is warranted. The digest equals
+ * `prepareDocument(page, anyVersion).contentHash` for the same page.
+ */
+export function computeDocumentContentHash(page: ExtractedFaqPage): string {
+  return sha256Hex(canonicalDocumentContent(page.faqItems));
+}
+
 export function prepareDocument(page: ExtractedFaqPage, documentVersion: number): PreparedDocument {
   if (!Number.isInteger(documentVersion) || documentVersion < 1) {
     throw new RangeError(
@@ -91,8 +111,9 @@ export function prepareDocument(page: ExtractedFaqPage, documentVersion: number)
   });
 
   // The document content is the concatenation of the chunk contents in original order, so the
-  // document hash changes iff any pair's text, or their order, changes.
-  const content = chunks.map((chunk) => chunk.content).join(DOCUMENT_CONTENT_SEPARATOR);
+  // document hash changes iff any pair's text, or their order, changes. Built from the shared
+  // `canonicalDocumentContent` helper so it stays byte-identical to `computeDocumentContentHash`.
+  const content = canonicalDocumentContent(page.faqItems);
 
   return {
     documentKey: page.documentKey,
