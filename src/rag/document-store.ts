@@ -105,30 +105,36 @@ export type NewVersionInput = {
  * Persistence contract for versioned RAG documents. Reads return freshly built, immutable views with
  * the derived `isActive` flag; the store never hands back an internal reference a caller could mutate.
  * All list results are ordered ascending (versions by number, chunks by `chunkIndex`).
+ *
+ * Every method is asynchronous. The in-memory implementation resolves synchronously in practice, but
+ * the contract is `Promise`-returning so a persistent backend (`PostgresRagDocumentStore`, `D-004`)
+ * is a drop-in replacement without changing the ingestion flow or its tests.
  */
 export interface RagDocumentStore {
   /** The document header derived from the active version, or `undefined` if the key was never ingested. */
-  getDocument(documentKey: string): StoredDocument | undefined;
+  getDocument(documentKey: string): Promise<StoredDocument | undefined>;
 
   /** The active version, or `undefined` if the key is unknown. */
-  getActiveVersion(documentKey: string): StoredDocumentVersion | undefined;
+  getActiveVersion(documentKey: string): Promise<StoredDocumentVersion | undefined>;
 
   /** A specific version, or `undefined` if the key or version is unknown. */
-  getVersion(documentKey: string, version: number): StoredDocumentVersion | undefined;
+  getVersion(documentKey: string, version: number): Promise<StoredDocumentVersion | undefined>;
 
   /** Every stored version for a key, ascending by version number; empty for an unknown key. */
-  listVersions(documentKey: string): StoredDocumentVersion[];
+  listVersions(documentKey: string): Promise<StoredDocumentVersion[]>;
 
   /** The chunks of the active version, ascending by `chunkIndex`; empty for an unknown key. */
-  getActiveChunks(documentKey: string): StoredChunk[];
+  getActiveChunks(documentKey: string): Promise<StoredChunk[]>;
 
   /** The chunks of a specific version, ascending by `chunkIndex`; empty if key or version is unknown. */
-  getChunks(documentKey: string, version: number): StoredChunk[];
+  getChunks(documentKey: string, version: number): Promise<StoredChunk[]>;
 
   /**
-   * Append a new immutable version and its chunks and make it the active version. Must reject a
-   * version that is not exactly the successor of the current active version (or `1` for a new key),
-   * so an already-stored version can never be overwritten and versioning stays contiguous.
+   * Append a new immutable version and its chunks and make it the active version, atomically. Must
+   * reject a version that is not exactly the successor of the current active version (or `1` for a new
+   * key), so an already-stored version can never be overwritten and versioning stays contiguous. A
+   * persistent implementation performs the version insert, chunk inserts, and `currentVersion` update
+   * in a single transaction.
    */
-  appendVersion(input: NewVersionInput): void;
+  appendVersion(input: NewVersionInput): Promise<void>;
 }

@@ -54,79 +54,83 @@ function fixedClock(start = 0): IngestOptions {
 }
 
 describe("ingestFaqPage — initial ingest", () => {
-  it("creates active version 1 and its chunks on the first ingest", () => {
+  it("creates active version 1 and its chunks on the first ingest", async () => {
     const store = new InMemoryRagDocumentStore();
-    const result = ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    const result = await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
     expect(result.outcome).toBe("created");
     expect(result.version).toBe(1);
     expect(result.createdNewVersion).toBe(true);
 
-    const doc = store.getDocument("mein-konto");
+    const doc = await store.getDocument("mein-konto");
     expect(doc?.currentVersion).toBe(1);
 
-    const active = store.getActiveVersion("mein-konto");
+    const active = await store.getActiveVersion("mein-konto");
     expect(active?.version).toBe(1);
     expect(active?.isActive).toBe(true);
 
-    const chunks = store.getActiveChunks("mein-konto");
+    const chunks = await store.getActiveChunks("mein-konto");
     expect(chunks).toHaveLength(2);
     expect(chunks.every((chunk) => chunk.isActive)).toBe(true);
   });
 });
 
 describe("ingestFaqPage — unchanged ingest", () => {
-  it("creates no new version and does not change the active version when the hash is identical", () => {
+  it("creates no new version and does not change the active version when the hash is identical", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
-    const activeBefore = store.getActiveVersion("mein-konto");
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    const activeBefore = await store.getActiveVersion("mein-konto");
 
-    const result = ingestFaqPage(store, samplePage(), metadata(), fixedClock(50));
+    const result = await ingestFaqPage(store, samplePage(), metadata(), fixedClock(50));
 
     expect(result.outcome).toBe("unchanged");
     expect(result.version).toBe(1);
     expect(result.createdNewVersion).toBe(false);
 
-    expect(store.listVersions("mein-konto")).toHaveLength(1);
+    expect(await store.listVersions("mein-konto")).toHaveLength(1);
     // The active version, including its creation time, is untouched by the no-op re-ingest.
-    expect(store.getActiveVersion("mein-konto")).toEqual(activeBefore);
+    expect(await store.getActiveVersion("mein-konto")).toEqual(activeBefore);
   });
 });
 
 describe("ingestFaqPage — changed ingest", () => {
-  it("creates version 2, activates it, and deactivates version 1", () => {
+  it("creates version 2, activates it, and deactivates version 1", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
     const changed = samplePage();
     changed.faqItems[0]!.answer = "Über das Registrierungsformular.";
-    const result = ingestFaqPage(store, changed, metadata(), fixedClock(50));
+    const result = await ingestFaqPage(store, changed, metadata(), fixedClock(50));
 
     expect(result.outcome).toBe("created");
     expect(result.version).toBe(2);
     expect(result.createdNewVersion).toBe(true);
 
-    expect(store.getDocument("mein-konto")?.currentVersion).toBe(2);
-    expect(store.listVersions("mein-konto").map((version) => version.version)).toEqual([1, 2]);
+    expect((await store.getDocument("mein-konto"))?.currentVersion).toBe(2);
+    expect((await store.listVersions("mein-konto")).map((version) => version.version)).toEqual([
+      1, 2,
+    ]);
 
-    expect(store.getVersion("mein-konto", 1)?.isActive).toBe(false);
-    expect(store.getVersion("mein-konto", 2)?.isActive).toBe(true);
-    expect(store.getActiveVersion("mein-konto")?.version).toBe(2);
+    expect((await store.getVersion("mein-konto", 1))?.isActive).toBe(false);
+    expect((await store.getVersion("mein-konto", 2))?.isActive).toBe(true);
+    expect((await store.getActiveVersion("mein-konto"))?.version).toBe(2);
 
     // The document's content hash now mirrors version 2, not version 1.
-    expect(store.getDocument("mein-konto")?.contentHash).toBe(computeDocumentContentHash(changed));
+    expect((await store.getDocument("mein-konto"))?.contentHash).toBe(
+      computeDocumentContentHash(changed),
+    );
   });
 
-  it("keeps inactive version-1 chunks stored and unchanged after version 2 is created", () => {
+  it("keeps inactive version-1 chunks stored and unchanged after version 2 is created", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
-    const v1ChunksBefore = store.getChunks("mein-konto", 1);
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    const v1ChunksBefore = await store.getChunks("mein-konto", 1);
 
     const changed = samplePage();
     changed.faqItems[0]!.answer = "Über das Registrierungsformular.";
-    ingestFaqPage(store, changed, metadata(), fixedClock(50));
+    await ingestFaqPage(store, changed, metadata(), fixedClock(50));
 
-    const v1ChunksAfter = store.getChunks("mein-konto", 1);
+    const v1ChunksAfter = await store.getChunks("mein-konto", 1);
     expect(v1ChunksAfter).toHaveLength(2);
     expect(v1ChunksAfter.every((chunk) => chunk.isActive === false)).toBe(true);
     // Byte-for-byte identical to what was stored for version 1 before version 2 existed, except the
@@ -134,59 +138,61 @@ describe("ingestFaqPage — changed ingest", () => {
     expect(v1ChunksAfter.map((chunk) => ({ ...chunk, isActive: true }))).toEqual(v1ChunksBefore);
     // The original v1 chunk content is preserved, distinct from the edited v2 content.
     expect(v1ChunksAfter[0]?.answer).toBe("Über den Login-Bereich.");
-    expect(store.getChunks("mein-konto", 2)[0]?.answer).toBe("Über das Registrierungsformular.");
+    expect((await store.getChunks("mein-konto", 2))[0]?.answer).toBe(
+      "Über das Registrierungsformular.",
+    );
   });
 
-  it("treats a reverted-but-different active hash as a change (compares against the active version only)", () => {
+  it("treats a reverted-but-different active hash as a change (compares against the active version only)", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
     const changed = samplePage();
     changed.faqItems[0]!.answer = "Über das Registrierungsformular.";
-    ingestFaqPage(store, changed, metadata(), fixedClock(50));
+    await ingestFaqPage(store, changed, metadata(), fixedClock(50));
 
     // Re-ingesting the original content differs from the active (v2) hash, so it becomes v3.
-    const reverted = ingestFaqPage(store, samplePage(), metadata(), fixedClock(60));
+    const reverted = await ingestFaqPage(store, samplePage(), metadata(), fixedClock(60));
     expect(reverted.version).toBe(3);
-    expect(store.getActiveVersion("mein-konto")?.version).toBe(3);
+    expect((await store.getActiveVersion("mein-konto"))?.version).toBe(3);
   });
 });
 
 describe("ingestFaqPage — independence of document keys", () => {
-  it("versions two document keys independently", () => {
+  it("versions two document keys independently", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
     // Bump mein-konto to v2.
     const changed = samplePage();
     changed.faqItems[0]!.answer = "Über das Registrierungsformular.";
-    ingestFaqPage(store, changed, metadata(), fixedClock(50));
+    await ingestFaqPage(store, changed, metadata(), fixedClock(50));
 
     // First ingest of a different key must start at v1.
-    const other = ingestFaqPage(store, returnsPage(), metadata(), fixedClock(60));
+    const other = await ingestFaqPage(store, returnsPage(), metadata(), fixedClock(60));
     expect(other.version).toBe(1);
 
-    expect(store.getDocument("mein-konto")?.currentVersion).toBe(2);
-    expect(store.getDocument("returns-policy")?.currentVersion).toBe(1);
-    expect(store.getActiveChunks("returns-policy")).toHaveLength(1);
-    expect(store.getActiveChunks("mein-konto")).toHaveLength(2);
+    expect((await store.getDocument("mein-konto"))?.currentVersion).toBe(2);
+    expect((await store.getDocument("returns-policy"))?.currentVersion).toBe(1);
+    expect(await store.getActiveChunks("returns-policy")).toHaveLength(1);
+    expect(await store.getActiveChunks("mein-konto")).toHaveLength(2);
   });
 });
 
 describe("ingestFaqPage — chunk keys", () => {
-  it("stamps the new version into 1-based chunk keys of the format {key}:v{n}:chunk-00x", () => {
+  it("stamps the new version into 1-based chunk keys of the format {key}:v{n}:chunk-00x", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
     const changed = samplePage();
     changed.faqItems[0]!.answer = "Über das Registrierungsformular.";
-    ingestFaqPage(store, changed, metadata(), fixedClock(50));
+    await ingestFaqPage(store, changed, metadata(), fixedClock(50));
 
-    expect(store.getChunks("mein-konto", 1).map((chunk) => chunk.chunkKey)).toEqual([
+    expect((await store.getChunks("mein-konto", 1)).map((chunk) => chunk.chunkKey)).toEqual([
       "mein-konto:v1:chunk-001",
       "mein-konto:v1:chunk-002",
     ]);
-    expect(store.getChunks("mein-konto", 2).map((chunk) => chunk.chunkKey)).toEqual([
+    expect((await store.getChunks("mein-konto", 2)).map((chunk) => chunk.chunkKey)).toEqual([
       "mein-konto:v2:chunk-001",
       "mein-konto:v2:chunk-002",
     ]);
@@ -194,11 +200,11 @@ describe("ingestFaqPage — chunk keys", () => {
 });
 
 describe("ingestFaqPage — metadata and traceability", () => {
-  it("preserves every required traceability field on the version and its chunks", () => {
+  it("preserves every required traceability field on the version and its chunks", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
-    const version = store.getActiveVersion("mein-konto");
+    const version = await store.getActiveVersion("mein-konto");
     expect(version).toMatchObject({
       documentKey: "mein-konto",
       version: 1,
@@ -213,7 +219,7 @@ describe("ingestFaqPage — metadata and traceability", () => {
     expect(version?.createdAt).toBe("2026-07-21T00:00:00.000Z");
     expect(version?.contentHash).toBe(computeDocumentContentHash(samplePage()));
 
-    for (const chunk of store.getActiveChunks("mein-konto")) {
+    for (const chunk of await store.getActiveChunks("mein-konto")) {
       expect(chunk).toMatchObject({
         documentKey: "mein-konto",
         documentVersion: 1,
@@ -231,50 +237,54 @@ describe("ingestFaqPage — metadata and traceability", () => {
     }
   });
 
-  it("rejects blank required metadata rather than storing invented values", () => {
+  it("rejects blank required metadata rather than storing invented values", async () => {
     const store = new InMemoryRagDocumentStore();
-    expect(() =>
+    await expect(
       ingestFaqPage(store, samplePage(), { ...metadata(), language: "" }, fixedClock()),
-    ).toThrow(RangeError);
+    ).rejects.toThrow(RangeError);
     // Nothing was stored on the rejected ingest.
-    expect(store.getDocument("mein-konto")).toBeUndefined();
+    expect(await store.getDocument("mein-konto")).toBeUndefined();
   });
 });
 
 describe("ingestFaqPage — determinism and immutability of inputs", () => {
-  it("is deterministic: identical inputs and clock yield identical stored versions", () => {
+  it("is deterministic: identical inputs and clock yield identical stored versions", async () => {
     const storeA = new InMemoryRagDocumentStore();
     const storeB = new InMemoryRagDocumentStore();
-    ingestFaqPage(storeA, samplePage(), metadata(), fixedClock());
-    ingestFaqPage(storeB, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(storeA, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(storeB, samplePage(), metadata(), fixedClock());
 
-    expect(storeB.getActiveVersion("mein-konto")).toEqual(storeA.getActiveVersion("mein-konto"));
-    expect(storeB.getActiveChunks("mein-konto")).toEqual(storeA.getActiveChunks("mein-konto"));
+    expect(await storeB.getActiveVersion("mein-konto")).toEqual(
+      await storeA.getActiveVersion("mein-konto"),
+    );
+    expect(await storeB.getActiveChunks("mein-konto")).toEqual(
+      await storeA.getActiveChunks("mein-konto"),
+    );
   });
 
-  it("does not mutate the input page, its faqItems, or the metadata object", () => {
+  it("does not mutate the input page, its faqItems, or the metadata object", async () => {
     const store = new InMemoryRagDocumentStore();
     const page = samplePage();
     const meta = metadata();
     const pageSnapshot = structuredClone(page);
     const metaSnapshot = structuredClone(meta);
 
-    ingestFaqPage(store, page, meta, fixedClock());
+    await ingestFaqPage(store, page, meta, fixedClock());
 
     expect(page).toEqual(pageSnapshot);
     expect(meta).toEqual(metaSnapshot);
   });
 
-  it("returns frozen views that cannot mutate stored records", () => {
+  it("returns frozen views that cannot mutate stored records", async () => {
     const store = new InMemoryRagDocumentStore();
-    ingestFaqPage(store, samplePage(), metadata(), fixedClock());
+    await ingestFaqPage(store, samplePage(), metadata(), fixedClock());
 
-    const chunk = store.getActiveChunks("mein-konto")[0]!;
+    const chunk = (await store.getActiveChunks("mein-konto"))[0]!;
     expect(Object.isFrozen(chunk)).toBe(true);
     // A mutation attempt does not change the stored record on the next read.
     expect(() => {
       (chunk as { isActive: boolean }).isActive = false;
     }).toThrow(TypeError);
-    expect(store.getActiveChunks("mein-konto")[0]?.isActive).toBe(true);
+    expect((await store.getActiveChunks("mein-konto"))[0]?.isActive).toBe(true);
   });
 });

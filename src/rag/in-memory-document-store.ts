@@ -1,3 +1,7 @@
+// The store methods are async only to satisfy the Promise-returning `RagDocumentStore` contract (which
+// exists for persistent backends); this in-memory implementation resolves synchronously and has no
+// `await` of its own. Throws in `appendVersion` still surface as rejected promises, as callers expect.
+/* eslint-disable @typescript-eslint/require-await */
 import type {
   ChunkCore,
   DocumentVersionCore,
@@ -42,7 +46,7 @@ type DocumentEntry = {
 export class InMemoryRagDocumentStore implements RagDocumentStore {
   private readonly documents = new Map<string, DocumentEntry>();
 
-  getDocument(documentKey: string): StoredDocument | undefined {
+  async getDocument(documentKey: string): Promise<StoredDocument | undefined> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return undefined;
@@ -65,7 +69,7 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     });
   }
 
-  getActiveVersion(documentKey: string): StoredDocumentVersion | undefined {
+  async getActiveVersion(documentKey: string): Promise<StoredDocumentVersion | undefined> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return undefined;
@@ -73,7 +77,10 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     return this.viewVersion(entry, entry.activeVersion);
   }
 
-  getVersion(documentKey: string, version: number): StoredDocumentVersion | undefined {
+  async getVersion(
+    documentKey: string,
+    version: number,
+  ): Promise<StoredDocumentVersion | undefined> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return undefined;
@@ -81,7 +88,7 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     return this.viewVersion(entry, version);
   }
 
-  listVersions(documentKey: string): StoredDocumentVersion[] {
+  async listVersions(documentKey: string): Promise<StoredDocumentVersion[]> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return [];
@@ -92,7 +99,7 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
       .filter((version): version is StoredDocumentVersion => version !== undefined);
   }
 
-  getActiveChunks(documentKey: string): StoredChunk[] {
+  async getActiveChunks(documentKey: string): Promise<StoredChunk[]> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return [];
@@ -100,7 +107,7 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     return this.viewChunks(entry, entry.activeVersion);
   }
 
-  getChunks(documentKey: string, version: number): StoredChunk[] {
+  async getChunks(documentKey: string, version: number): Promise<StoredChunk[]> {
     const entry = this.documents.get(documentKey);
     if (entry === undefined) {
       return [];
@@ -108,7 +115,7 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     return this.viewChunks(entry, version);
   }
 
-  appendVersion(input: NewVersionInput): void {
+  async appendVersion(input: NewVersionInput): Promise<void> {
     const { version, chunks } = input;
     const documentKey = version.documentKey;
 

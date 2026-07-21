@@ -58,12 +58,12 @@ function requireNonEmpty(value: string, field: string): void {
   }
 }
 
-export function ingestFaqPage(
+export async function ingestFaqPage(
   store: RagDocumentStore,
   page: ExtractedFaqPage,
   metadata: IngestionMetadata,
   options: IngestOptions = {},
-): IngestResult {
+): Promise<IngestResult> {
   requireNonEmpty(metadata.documentType, "documentType");
   requireNonEmpty(metadata.language, "language");
   requireNonEmpty(metadata.crawlerVersion, "crawlerVersion");
@@ -74,7 +74,7 @@ export function ingestFaqPage(
 
   // Change detection precedes any version decision, and is deliberately version-independent.
   const contentHash = computeDocumentContentHash(page);
-  const existing = store.getDocument(documentKey);
+  const existing = await store.getDocument(documentKey);
 
   if (existing !== undefined && existing.contentHash === contentHash) {
     // Same content as the active version: no new version, active version unchanged.
@@ -123,7 +123,7 @@ export function ingestFaqPage(
     createdAt,
   }));
 
-  store.appendVersion({ version: versionCore, chunks: chunkCores });
+  await store.appendVersion({ version: versionCore, chunks: chunkCores });
 
   return {
     outcome: "created",

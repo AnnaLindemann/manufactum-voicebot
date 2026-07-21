@@ -44,75 +44,77 @@ function chunkCore(version: number, index: number): ChunkCore {
 }
 
 describe("InMemoryRagDocumentStore — reads on an unknown key", () => {
-  it("returns undefined/empty for a key that was never ingested", () => {
+  it("returns undefined/empty for a key that was never ingested", async () => {
     const store = new InMemoryRagDocumentStore();
-    expect(store.getDocument("missing")).toBeUndefined();
-    expect(store.getActiveVersion("missing")).toBeUndefined();
-    expect(store.getVersion("missing", 1)).toBeUndefined();
-    expect(store.listVersions("missing")).toEqual([]);
-    expect(store.getActiveChunks("missing")).toEqual([]);
-    expect(store.getChunks("missing", 1)).toEqual([]);
+    expect(await store.getDocument("missing")).toBeUndefined();
+    expect(await store.getActiveVersion("missing")).toBeUndefined();
+    expect(await store.getVersion("missing", 1)).toBeUndefined();
+    expect(await store.listVersions("missing")).toEqual([]);
+    expect(await store.getActiveChunks("missing")).toEqual([]);
+    expect(await store.getChunks("missing", 1)).toEqual([]);
   });
 });
 
 describe("InMemoryRagDocumentStore — version numbering invariants", () => {
-  it("rejects a first version that is not 1", () => {
+  it("rejects a first version that is not 1", async () => {
     const store = new InMemoryRagDocumentStore();
-    expect(() =>
+    await expect(
       store.appendVersion({ version: versionCore(2), chunks: [chunkCore(2, 1)] }),
-    ).toThrow(RagStorageError);
+    ).rejects.toThrow(RagStorageError);
   });
 
-  it("rejects a non-contiguous next version", () => {
+  it("rejects a non-contiguous next version", async () => {
     const store = new InMemoryRagDocumentStore();
-    store.appendVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
-    expect(() =>
+    await store.appendVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
+    await expect(
       store.appendVersion({ version: versionCore(3), chunks: [chunkCore(3, 1)] }),
-    ).toThrow(RagStorageError);
+    ).rejects.toThrow(RagStorageError);
   });
 
-  it("rejects re-appending an existing version, preserving immutability", () => {
+  it("rejects re-appending an existing version, preserving immutability", async () => {
     const store = new InMemoryRagDocumentStore();
-    store.appendVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
+    await store.appendVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
     // Appending version 1 again is not the expected successor (2), so it is refused.
-    expect(() =>
+    await expect(
       store.appendVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] }),
-    ).toThrow(RagStorageError);
+    ).rejects.toThrow(RagStorageError);
   });
 
-  it("rejects a chunk whose version or key does not match its version record", () => {
+  it("rejects a chunk whose version or key does not match its version record", async () => {
     const store = new InMemoryRagDocumentStore();
-    expect(() =>
+    await expect(
       store.appendVersion({ version: versionCore(1), chunks: [chunkCore(2, 1)] }),
-    ).toThrow(RagStorageError);
+    ).rejects.toThrow(RagStorageError);
     const foreign: ChunkCore = { ...chunkCore(1, 1), documentKey: "other" };
-    expect(() => store.appendVersion({ version: versionCore(1), chunks: [foreign] })).toThrow(
-      RagStorageError,
-    );
+    await expect(
+      store.appendVersion({ version: versionCore(1), chunks: [foreign] }),
+    ).rejects.toThrow(RagStorageError);
   });
 });
 
 describe("InMemoryRagDocumentStore — immutability of stored records", () => {
-  it("does not reflect later mutations of the caller's input arrays or objects", () => {
+  it("does not reflect later mutations of the caller's input arrays or objects", async () => {
     const store = new InMemoryRagDocumentStore();
     const chunks = [chunkCore(1, 1)];
-    store.appendVersion({ version: versionCore(1), chunks });
+    await store.appendVersion({ version: versionCore(1), chunks });
 
     // Mutating the caller's array and object after the append must not affect stored state.
     chunks.push(chunkCore(1, 2));
     chunks[0]!.answer = "mutated";
 
-    const stored = store.getActiveChunks("doc");
+    const stored = await store.getActiveChunks("doc");
     expect(stored).toHaveLength(1);
     expect(stored[0]?.answer).toBe("a1");
   });
 
-  it("orders chunks by ascending chunkIndex regardless of insertion order", () => {
+  it("orders chunks by ascending chunkIndex regardless of insertion order", async () => {
     const store = new InMemoryRagDocumentStore();
-    store.appendVersion({
+    await store.appendVersion({
       version: versionCore(1),
       chunks: [chunkCore(1, 3), chunkCore(1, 1), chunkCore(1, 2)],
     });
-    expect(store.getActiveChunks("doc").map((chunk) => chunk.chunkIndex)).toEqual([1, 2, 3]);
+    expect((await store.getActiveChunks("doc")).map((chunk) => chunk.chunkIndex)).toEqual([
+      1, 2, 3,
+    ]);
   });
 });
