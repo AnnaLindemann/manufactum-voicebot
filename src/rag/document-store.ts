@@ -16,7 +16,22 @@
  *   version and its chunks stored but no longer active;
  * - `isActive` is therefore not a stored, mutable flag but a **derived** property: it is computed on
  *   read from the document's current active version, so making a new version active never mutates any
- *   previously stored record. Nothing here creates embeddings, retrieves, or exposes an HTTP surface.
+ *   previously stored record.
+ *
+ * Lifecycle split (`rag-embeddings-and-retrieval-design.md` §4). Appending a version is split into
+ * three distinct steps so a version becomes active **only after** all its embeddings are stored:
+ *
+ * - **stage** (`stageVersion`) — insert the immutable version and its chunks **without** advancing the
+ *   active pointer; for a brand-new key no `rag_documents` header is created yet, so the document is
+ *   simply invisible to retrieval until activated;
+ * - **embed** (`saveChunkEmbeddings`) — persist one immutable embedding row per (chunk × model × model
+ *   version) into `rag_chunk_embeddings`; append-only and idempotent;
+ * - **activate** (`activateVersion`) — under a per-document lock, verify every chunk of the target
+ *   version has an embedding for the active model (readiness gate), then advance/create the active
+ *   pointer atomically.
+ *
+ * This file still creates no embedding vectors, runs no retrieval, and exposes no HTTP surface: the
+ * embedding vector is supplied by the caller; computing it is a later offline phase.
  */
 
 /**
@@ -90,15 +105,59 @@ export type StoredDocument = {
 };
 
 /**
- * A fully-formed new version and its chunks, ready to be appended and made active. The ingestion flow
- * builds this — including deciding the `version` number — and the store only persists it. Keeping the
- * version number out of the store keeps `D-005`'s rule that *the flow*, not the caller and not the
- * store's internals, owns version numbering; the store merely enforces the numbering is contiguous
- * and never overwrites an existing version.
+ * A fully-formed new version and its chunks, ready to be staged. The ingestion flow builds this —
+ * including deciding the `version` number — and the store only persists it. Keeping the version number
+ * out of the store keeps `D-005`'s rule that *the flow*, not the caller and not the store's internals,
+ * owns version numbering; the store merely enforces the numbering is contiguous and never overwrites
+ * an existing version.
  */
 export type NewVersionInput = {
   version: DocumentVersionCore;
   chunks: ChunkCore[];
+};
+
+/**
+ * The immutable core of one chunk embedding, as stored in `rag_chunk_embeddings`
+ * (`rag-embeddings-and-retrieval-design.md` §2–3). It is self-describing: every field needed to know
+ * *how* the vector was produced is stored on the row, so a future re-embedding is reproducible and
+ * comparable without a join.
+ *
+ * The embedding is bound to exactly one immutable chunk of one document version via
+ * `(documentKey, documentVersion, chunkIndex)`. `(embeddingModel, embeddingModelVersion)` identify the
+ * model and the pinned weight revision; two revisions of "the same" model may yield different vectors
+ * and must never be mixed in one search. `embeddingDim` must equal `embedding.length` (the DB mirrors
+ * this with `CHECK (vector_dims(embedding) = embedding_dim)`). `inputRecipe` records the input-string
+ * recipe including the E5 task prefix; `inputHash` is the SHA-256 of the exact string fed to the model;
+ * `chunkContentHash` copies the chunk's `contentHash` at embedding time. `normalized` records whether
+ * L2 normalization was applied. This module never computes the vector — the caller supplies it.
+ */
+export type ChunkEmbeddingCore = {
+  documentKey: string;
+  documentVersion: number;
+  chunkIndex: number;
+  embeddingModel: string;
+  embeddingModelVersion: string;
+  embeddingDim: number;
+  inputRecipe: string;
+  normalized: boolean;
+  inputHash: string;
+  chunkContentHash: string;
+  /** The vector itself. Its length must equal `embeddingDim`. */
+  embedding: number[];
+  createdAt: string;
+};
+
+/** A chunk embedding as returned to callers: the immutable core, handed back as a frozen copy. */
+export type StoredChunkEmbedding = ChunkEmbeddingCore;
+
+/**
+ * The active embedding model identity used to gate activation and (later) to filter retrieval. The
+ * active model is runtime configuration, not a stored flag: activation succeeds only when every chunk
+ * of the target version carries an embedding for exactly this `(embeddingModel, embeddingModelVersion)`.
+ */
+export type EmbeddingModelRef = {
+  embeddingModel: string;
+  embeddingModelVersion: string;
 };
 
 /**
@@ -114,8 +173,15 @@ export interface RagDocumentStore {
   /** The document header derived from the active version, or `undefined` if the key was never ingested. */
   getDocument(documentKey: string): Promise<StoredDocument | undefined>;
 
-  /** The active version, or `undefined` if the key is unknown. */
+  /** The active version, or `undefined` if the key is unknown or has no active version yet. */
   getActiveVersion(documentKey: string): Promise<StoredDocumentVersion | undefined>;
+
+  /**
+   * The staged (not-yet-active) version, or `undefined` if none is pending. A staged version is one
+   * whose number is greater than the active version (for a brand-new key, a version whose document has
+   * no active pointer yet). At most one staged version exists per document at any time.
+   */
+  getStagedVersion(documentKey: string): Promise<StoredDocumentVersion | undefined>;
 
   /** A specific version, or `undefined` if the key or version is unknown. */
   getVersion(documentKey: string, version: number): Promise<StoredDocumentVersion | undefined>;
@@ -130,11 +196,36 @@ export interface RagDocumentStore {
   getChunks(documentKey: string, version: number): Promise<StoredChunk[]>;
 
   /**
-   * Append a new immutable version and its chunks and make it the active version, atomically. Must
-   * reject a version that is not exactly the successor of the current active version (or `1` for a new
-   * key), so an already-stored version can never be overwritten and versioning stays contiguous. A
-   * persistent implementation performs the version insert, chunk inserts, and `currentVersion` update
-   * in a single transaction.
+   * The stored embeddings for a specific version, in a stable order. Empty if the key or version is
+   * unknown or has no embeddings yet. Used to inspect embedding coverage; never mutates anything.
    */
-  appendVersion(input: NewVersionInput): Promise<void>;
+  getChunkEmbeddings(documentKey: string, version: number): Promise<StoredChunkEmbedding[]>;
+
+  /**
+   * **Stage** a new immutable version and its chunks **without** activating it (design §4-A). The
+   * active pointer is not advanced, and for a brand-new key no document header is created — a staged
+   * document is invisible to retrieval until activated. Must reject a version that is not exactly the
+   * successor of the current active version (or `1` for a new key), and must reject staging when a
+   * different staged version is already pending for the document ("at most one staged version"). A
+   * persistent implementation writes the version and chunk rows in a single transaction under a
+   * per-document lock.
+   */
+  stageVersion(input: NewVersionInput): Promise<void>;
+
+  /**
+   * **Persist** embeddings for already-staged chunks (design §4-B). Append-only and idempotent: a row
+   * that already exists for a `(chunk, embeddingModel, embeddingModelVersion)` is left untouched, so a
+   * retry after a partial embedding run safely fills in only the missing rows. Every embedding must
+   * reference an existing chunk and its `embedding.length` must equal `embeddingDim`.
+   */
+  saveChunkEmbeddings(embeddings: ChunkEmbeddingCore[]): Promise<void>;
+
+  /**
+   * **Activate** a staged version, making it the active version atomically (design §4-C). Under a
+   * per-document lock this re-checks version contiguity and enforces the **embedding readiness gate**:
+   * activation is refused unless every chunk of the target version carries an embedding for the given
+   * active `model`. On success the active pointer is advanced (or created, for a new key); no prior
+   * version, chunk, or embedding is ever mutated.
+   */
+  activateVersion(documentKey: string, version: number, model: EmbeddingModelRef): Promise<void>;
 }

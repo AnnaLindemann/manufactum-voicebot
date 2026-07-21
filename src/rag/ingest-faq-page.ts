@@ -1,4 +1,5 @@
 import type { ChunkCore, DocumentVersionCore, RagDocumentStore } from "./document-store.js";
+import { RagStorageError } from "./in-memory-document-store.js";
 import { computeDocumentContentHash, prepareDocument } from "./prepare-document.js";
 import type { ExtractedFaqPage } from "./types.js";
 
@@ -7,13 +8,24 @@ import type { ExtractedFaqPage } from "./types.js";
  *
  * This is the orchestration layer between extraction and storage. It implements the change-detection
  * and versioning rules of `rag-design.md`/`D-005`, and it — not the caller and not the store — decides
- * the document version number:
+ * the document version number.
  *
- * - a first ingest for a key creates active version 1 and its chunks;
- * - a re-ingest whose canonical content hash equals the active version's hash creates no new version
- *   and leaves the active version untouched;
- * - a re-ingest whose hash differs creates the next version, makes it (and its chunks) active, and
- *   leaves the previous version and its chunks stored but inactive.
+ * Since `rag-embeddings-and-retrieval-design.md` §4 split the lifecycle, ingestion performs only the
+ * **staging** step: it stores a new version and its chunks but does **not** activate it. Activation
+ * happens later, after every chunk has been embedded (the embedding and activation steps live outside
+ * this flow). So:
+ *
+ * - a first ingest for a key stages version 1 and its chunks; the document has no active version yet
+ *   and stays invisible to retrieval until activated;
+ * - a re-ingest whose canonical content hash equals the active version's hash stages nothing and
+ *   leaves the active version untouched (`unchanged`);
+ * - a re-ingest whose hash equals the already-staged version's hash is a no-op (`unchanged`): the same
+ *   content is already staged and waiting for embeddings/activation;
+ * - a re-ingest whose hash differs from the active version stages the next version, leaving the
+ *   previous version and its chunks stored and still active.
+ *
+ * Because at most one version may be staged per document, a re-ingest carrying content that differs
+ * from a *pending* staged version is refused (the staged version must be activated first).
  *
  * Versioned chunk keys are generated **only after** the version number is decided: `computeDocument
  * ContentHash` runs first for change detection, and `prepareDocument` (which stamps the version into
@@ -35,15 +47,21 @@ export type IngestionMetadata = {
   extractorVersion: string;
 };
 
-/** How an ingest resolved. `unchanged` means the content hash matched the active version. */
-export type IngestOutcome = "created" | "unchanged";
+/**
+ * How an ingest resolved. `staged` means a new version was staged (awaiting embeddings/activation);
+ * `unchanged` means the content matched the active version, or was already staged, so nothing changed.
+ */
+export type IngestOutcome = "staged" | "unchanged";
 
 export type IngestResult = {
   outcome: IngestOutcome;
   documentKey: string;
-  /** The active version after this ingest: the existing one on `unchanged`, the new one on `created`. */
+  /**
+   * The relevant version number: the newly staged version on `staged`; on `unchanged`, the active
+   * version (content matched active) or the already-staged version (content matched the staged one).
+   */
   version: number;
-  createdNewVersion: boolean;
+  stagedNewVersion: boolean;
 };
 
 export type IngestOptions = {
@@ -82,8 +100,27 @@ export async function ingestFaqPage(
       outcome: "unchanged",
       documentKey,
       version: existing.currentVersion,
-      createdNewVersion: false,
+      stagedNewVersion: false,
     };
+  }
+
+  // A version may already be staged (awaiting embeddings/activation). Because at most one may be
+  // pending, decide what to do about it before staging anything new.
+  const staged = await store.getStagedVersion(documentKey);
+  if (staged !== undefined) {
+    if (staged.contentHash === contentHash) {
+      // The identical content is already staged and waiting; re-staging would be a no-op.
+      return {
+        outcome: "unchanged",
+        documentKey,
+        version: staged.version,
+        stagedNewVersion: false,
+      };
+    }
+    // Different content cannot be staged while another staged version is pending activation.
+    throw new RagStorageError(
+      `Document "${documentKey}" already has a pending staged version ${String(staged.version)}; activate it before staging different content.`,
+    );
   }
 
   // Only now, with a change confirmed, is the next version number decided and stamped into chunk keys.
@@ -123,12 +160,12 @@ export async function ingestFaqPage(
     createdAt,
   }));
 
-  await store.appendVersion({ version: versionCore, chunks: chunkCores });
+  await store.stageVersion({ version: versionCore, chunks: chunkCores });
 
   return {
-    outcome: "created",
+    outcome: "staged",
     documentKey,
     version: nextVersion,
-    createdNewVersion: true,
+    stagedNewVersion: true,
   };
 }

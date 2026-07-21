@@ -1,25 +1,34 @@
 import type { Pool, PoolClient } from "pg";
 import type {
+  ChunkEmbeddingCore,
+  EmbeddingModelRef,
   NewVersionInput,
   RagDocumentStore,
   StoredChunk,
+  StoredChunkEmbedding,
   StoredDocument,
   StoredDocumentVersion,
 } from "./document-store.js";
 import { RagStorageError } from "./in-memory-document-store.js";
 
 /**
- * PostgreSQL implementation of `RagDocumentStore` (`D-004`).
+ * PostgreSQL implementation of `RagDocumentStore` (`D-004`,
+ * `rag-embeddings-and-retrieval-design.md` §4).
  *
- * Persists documents, immutable versions, and immutable chunks in the schema created by
- * `migrations/`. It is a drop-in replacement for `InMemoryRagDocumentStore`: the ingestion flow and
- * its change-detection logic are unchanged, and this store enforces the same versioning invariants.
+ * Persists documents, immutable versions, immutable chunks, and immutable chunk embeddings in the
+ * schema created by `migrations/`. It is a drop-in replacement for `InMemoryRagDocumentStore`: the
+ * ingestion flow is unchanged and this store enforces the same versioning and lifecycle invariants.
  *
- * Immutability is structural. Old versions and chunks are never updated or deleted (the migration
- * even installs triggers forbidding it); "active" is derived on read by comparing a version number to
- * `rag_documents.current_version`, never stored as a mutable flag. A new version, its chunks, and the
- * advance of `current_version` are written in a single transaction, so a partial version is never
- * observable.
+ * Immutability is structural. Old versions, chunks, and embeddings are never updated or deleted (the
+ * migrations install triggers forbidding it); "active" is derived on read by comparing a version
+ * number to `rag_documents.current_version`, never stored as a mutable flag.
+ *
+ * Lifecycle. A version is **staged** (its version and chunk rows are written, but the active pointer
+ * is not advanced and, for a brand-new key, no `rag_documents` header is created yet). Its chunk
+ * **embeddings** are stored append-only and idempotently. It is then **activated** under a per-document
+ * lock, but only once every chunk carries an embedding for the active model (the readiness gate);
+ * activation advances/creates the active pointer in a single transaction, so a partial version is
+ * never observable and a document without embeddings is never active.
  *
  * The caller supplies an already-configured `pg.Pool`; this class never reads a connection string or
  * any secret and never logs one.
@@ -61,19 +70,38 @@ type ChunkRow = {
   is_active: boolean;
 };
 
-/** Columns selected for a version, aliasing `is_active` from the document's current version. */
+/** Shape of an embedding row. `embedding` is selected as its pgvector text form, e.g. `[0.1,0.2]`. */
+type EmbeddingRow = {
+  document_key: string;
+  document_version: number;
+  chunk_index: number;
+  embedding_model: string;
+  embedding_model_version: string;
+  embedding_dim: number;
+  input_recipe: string;
+  normalized: boolean;
+  input_hash: string;
+  chunk_content_hash: string;
+  embedding: string;
+  created_at: Date;
+};
+
+/**
+ * Columns selected for a version. `is_active` is `COALESCE(v.version = d.current_version, false)` so a
+ * staged version with no document header yet (a brand-new key) correctly reads as inactive.
+ */
 const VERSION_COLUMNS = `
   v.document_key, v.version, v.source_url, v.title, v.document_type, v.language,
   v.content, v.content_hash, v.crawler_version, v.extractor_version, v.created_at,
-  (v.version = d.current_version) AS is_active
+  COALESCE(v.version = d.current_version, false) AS is_active
 `;
 
-/** Columns selected for a chunk, aliasing `is_active` from the document's current version. */
+/** Columns selected for a chunk, with `is_active` derived (and null-safe for staged new keys). */
 const CHUNK_COLUMNS = `
   c.document_key, c.document_version, c.chunk_index, c.chunk_key, c.question, c.answer,
   c.content, c.content_hash, c.source_url, c.title, c.document_type, c.language,
   c.crawler_version, c.extractor_version, c.created_at,
-  (c.document_version = d.current_version) AS is_active
+  COALESCE(c.document_version = d.current_version, false) AS is_active
 `;
 
 export class PostgresRagDocumentStore implements RagDocumentStore {
@@ -118,6 +146,7 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
   }
 
   async getActiveVersion(documentKey: string): Promise<StoredDocumentVersion | undefined> {
+    // INNER JOIN: an active version requires a document header pointing at it.
     const result = await this.pool.query<VersionRow>(
       `SELECT ${VERSION_COLUMNS}
          FROM rag_document_versions v
@@ -129,14 +158,32 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     return row === undefined ? undefined : mapVersion(row);
   }
 
+  async getStagedVersion(documentKey: string): Promise<StoredDocumentVersion | undefined> {
+    // A staged version is one whose number exceeds the active version (0 when no header exists). At
+    // most one is pending, so LIMIT 1 on the highest version returns it.
+    const result = await this.pool.query<VersionRow>(
+      `SELECT ${VERSION_COLUMNS}
+         FROM rag_document_versions v
+         LEFT JOIN rag_documents d ON d.document_key = v.document_key
+        WHERE v.document_key = $1
+          AND v.version > COALESCE(d.current_version, 0)
+        ORDER BY v.version DESC
+        LIMIT 1`,
+      [documentKey],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : mapVersion(row);
+  }
+
   async getVersion(
     documentKey: string,
     version: number,
   ): Promise<StoredDocumentVersion | undefined> {
+    // LEFT JOIN so a staged version of a not-yet-activated new key is still returned.
     const result = await this.pool.query<VersionRow>(
       `SELECT ${VERSION_COLUMNS}
          FROM rag_document_versions v
-         JOIN rag_documents d ON d.document_key = v.document_key
+         LEFT JOIN rag_documents d ON d.document_key = v.document_key
         WHERE v.document_key = $1 AND v.version = $2`,
       [documentKey, version],
     );
@@ -148,7 +195,7 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     const result = await this.pool.query<VersionRow>(
       `SELECT ${VERSION_COLUMNS}
          FROM rag_document_versions v
-         JOIN rag_documents d ON d.document_key = v.document_key
+         LEFT JOIN rag_documents d ON d.document_key = v.document_key
         WHERE v.document_key = $1
         ORDER BY v.version ASC`,
       [documentKey],
@@ -172,7 +219,7 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     const result = await this.pool.query<ChunkRow>(
       `SELECT ${CHUNK_COLUMNS}
          FROM rag_chunks c
-         JOIN rag_documents d ON d.document_key = c.document_key
+         LEFT JOIN rag_documents d ON d.document_key = c.document_key
         WHERE c.document_key = $1 AND c.document_version = $2
         ORDER BY c.chunk_index ASC`,
       [documentKey, version],
@@ -180,11 +227,24 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     return result.rows.map(mapChunk);
   }
 
-  async appendVersion(input: NewVersionInput): Promise<void> {
+  async getChunkEmbeddings(documentKey: string, version: number): Promise<StoredChunkEmbedding[]> {
+    const result = await this.pool.query<EmbeddingRow>(
+      `SELECT document_key, document_version, chunk_index, embedding_model, embedding_model_version,
+              embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
+              embedding::text AS embedding, created_at
+         FROM rag_chunk_embeddings
+        WHERE document_key = $1 AND document_version = $2
+        ORDER BY chunk_index ASC, embedding_model ASC, embedding_model_version ASC`,
+      [documentKey, version],
+    );
+    return result.rows.map(mapEmbedding);
+  }
+
+  async stageVersion(input: NewVersionInput): Promise<void> {
     const { version, chunks } = input;
     const documentKey = version.documentKey;
 
-    // Same guard as the in-memory store: every chunk must belong to the version being appended.
+    // Same guard as the in-memory store: every chunk must belong to the version being staged.
     for (const chunk of chunks) {
       if (chunk.documentKey !== documentKey) {
         throw new RagStorageError(
@@ -201,44 +261,213 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      // Serialize staging/activation for this key. A brand-new key has a document row with a NULL
+      // active pointer, so an advisory lock (not just SELECT ... FOR UPDATE) serializes concurrent
+      // operations even before the first activation.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [documentKey]);
 
-      // Lock the document row (if any) so concurrent appends to the same key are serialized and the
-      // current-version read used for the contiguity check cannot race.
-      const current = await client.query<{ current_version: number }>(
-        "SELECT current_version FROM rag_documents WHERE document_key = $1 FOR UPDATE",
+      const current = await client.query<{ current_version: number | null }>(
+        "SELECT current_version FROM rag_documents WHERE document_key = $1",
         [documentKey],
       );
-      const existing = current.rows[0];
+      const documentExists = current.rows.length > 0;
+      // The active pointer may be NULL (a staged-but-never-activated new key).
+      const active = current.rows[0]?.current_version ?? null;
 
-      if (existing === undefined) {
-        if (version.version !== 1) {
-          throw new RagStorageError(
-            `First version for "${documentKey}" must be 1, received ${String(version.version)}.`,
-          );
-        }
-        await client.query(
-          "INSERT INTO rag_documents (document_key, current_version, created_at) VALUES ($1, $2, $3)",
-          [documentKey, 1, version.createdAt],
+      const maxRow = await client.query<{ max_version: number | null }>(
+        "SELECT max(version) AS max_version FROM rag_document_versions WHERE document_key = $1",
+        [documentKey],
+      );
+      const maxVersion = maxRow.rows[0]?.max_version ?? 0;
+
+      // At most one staged version per document: a version above the active pointer blocks staging.
+      if (maxVersion > (active ?? 0)) {
+        throw new RagStorageError(
+          `Document "${documentKey}" already has a pending staged version; activate it before staging another.`,
         );
-      } else {
-        const expected = existing.current_version + 1;
-        if (version.version !== expected) {
-          throw new RagStorageError(
-            `Next version for "${documentKey}" must be ${String(expected)}, received ${String(version.version)}.`,
-          );
-        }
+      }
+
+      const expected = (active ?? 0) + 1;
+      if (version.version !== expected) {
+        throw new RagStorageError(
+          `Next version for "${documentKey}" must be ${String(expected)}, received ${String(version.version)}.`,
+        );
+      }
+
+      if (!documentExists) {
+        // Brand-new key: create the document header first, with the active pointer unset (NULL), so the
+        // staged version's foreign key to rag_documents is satisfied. current_version is advanced at
+        // activation. createdAt is stamped from version 1 (the document's stable createdAt).
+        await client.query(
+          "INSERT INTO rag_documents (document_key, current_version, created_at) VALUES ($1, NULL, $2)",
+          [documentKey, version.createdAt],
+        );
       }
 
       await insertVersion(client, input);
       await insertChunks(client, input);
 
-      if (existing !== undefined) {
-        // Advance the mutable pointer only — old versions and chunks are left untouched.
-        await client.query(
-          "UPDATE rag_documents SET current_version = $2 WHERE document_key = $1",
-          [documentKey, version.version],
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async saveChunkEmbeddings(embeddings: ChunkEmbeddingCore[]): Promise<void> {
+    // Validate declared dimension against vector length before touching the database (mirrors the
+    // DB CHECK), so a mismatch is a clear RagStorageError rather than an opaque constraint violation.
+    for (const embedding of embeddings) {
+      if (embedding.embedding.length !== embedding.embeddingDim) {
+        throw new RagStorageError(
+          `Embedding dimension ${String(embedding.embeddingDim)} does not match vector length ${String(embedding.embedding.length)} for ${embedding.documentKey} v${String(embedding.documentVersion)} chunk ${String(embedding.chunkIndex)}.`,
         );
       }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (const embedding of embeddings) {
+        // Append-only. ON CONFLICT DO NOTHING makes an exact retry a no-op (DO UPDATE is impossible
+        // here — the immutability trigger forbids UPDATE). rowCount tells us whether a row was written.
+        const inserted = await client.query(
+          `INSERT INTO rag_chunk_embeddings
+             (document_key, document_version, chunk_index, embedding_model, embedding_model_version,
+              embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
+              embedding, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector, $12)
+           ON CONFLICT
+             (document_key, document_version, chunk_index, embedding_model, embedding_model_version)
+           DO NOTHING`,
+          [
+            embedding.documentKey,
+            embedding.documentVersion,
+            embedding.chunkIndex,
+            embedding.embeddingModel,
+            embedding.embeddingModelVersion,
+            embedding.embeddingDim,
+            embedding.inputRecipe,
+            embedding.normalized,
+            embedding.inputHash,
+            embedding.chunkContentHash,
+            formatVector(embedding.embedding),
+            embedding.createdAt,
+          ],
+        );
+
+        if (inserted.rowCount === 0) {
+          // A row already exists for this natural key. Idempotent no-op only if its content is
+          // identical; a conflicting retry (same key, different vector/hashes/metadata) must fail
+          // loudly instead of being silently swallowed. The vector is compared inside the database so
+          // both sides are the same (float4) precision. created_at is excluded: it is a recording
+          // timestamp, not embedding content, and a legitimate retry may carry a fresh one.
+          const compared = await client.query<{ same: boolean }>(
+            `SELECT (embedding = $6::vector
+                     AND embedding_dim = $7
+                     AND input_recipe = $8
+                     AND normalized = $9
+                     AND input_hash = $10
+                     AND chunk_content_hash = $11) AS same
+               FROM rag_chunk_embeddings
+              WHERE document_key = $1 AND document_version = $2 AND chunk_index = $3
+                AND embedding_model = $4 AND embedding_model_version = $5`,
+            [
+              embedding.documentKey,
+              embedding.documentVersion,
+              embedding.chunkIndex,
+              embedding.embeddingModel,
+              embedding.embeddingModelVersion,
+              formatVector(embedding.embedding),
+              embedding.embeddingDim,
+              embedding.inputRecipe,
+              embedding.normalized,
+              embedding.inputHash,
+              embedding.chunkContentHash,
+            ],
+          );
+          if (compared.rows[0]?.same !== true) {
+            throw new RagStorageError(
+              `Conflicting embedding for existing key ${embedding.documentKey} v${String(embedding.documentVersion)} chunk ${String(embedding.chunkIndex)} (${embedding.embeddingModel}@${embedding.embeddingModelVersion}): a stored embedding with different content already exists and is immutable.`,
+            );
+          }
+        }
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async activateVersion(
+    documentKey: string,
+    version: number,
+    model: EmbeddingModelRef,
+  ): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [documentKey]);
+
+      const current = await client.query<{ current_version: number | null }>(
+        "SELECT current_version FROM rag_documents WHERE document_key = $1 FOR UPDATE",
+        [documentKey],
+      );
+      const active = current.rows[0]?.current_version ?? null;
+
+      const staged = await client.query(
+        "SELECT 1 FROM rag_document_versions WHERE document_key = $1 AND version = $2",
+        [documentKey, version],
+      );
+      if (staged.rows.length === 0) {
+        throw new RagStorageError(
+          `Cannot activate version ${String(version)} of "${documentKey}": it is not staged.`,
+        );
+      }
+
+      const expected = (active ?? 0) + 1;
+      if (version !== expected) {
+        throw new RagStorageError(
+          `Next activatable version for "${documentKey}" is ${String(expected)}, received ${String(version)}.`,
+        );
+      }
+
+      // Embedding readiness gate (design §4-C): refuse activation while any chunk of the target
+      // version lacks an embedding for the active model.
+      const gate = await client.query<{ missing: number }>(
+        `SELECT count(*)::int AS missing
+           FROM rag_chunks c
+          WHERE c.document_key = $1
+            AND c.document_version = $2
+            AND NOT EXISTS (
+              SELECT 1 FROM rag_chunk_embeddings e
+               WHERE e.document_key = c.document_key
+                 AND e.document_version = c.document_version
+                 AND e.chunk_index = c.chunk_index
+                 AND e.embedding_model = $3
+                 AND e.embedding_model_version = $4
+            )`,
+        [documentKey, version, model.embeddingModel, model.embeddingModelVersion],
+      );
+      const missing = gate.rows[0]?.missing ?? 0;
+      if (missing > 0) {
+        throw new RagStorageError(
+          `Cannot activate version ${String(version)} of "${documentKey}": ${String(missing)} chunk(s) lack an embedding for ${model.embeddingModel}@${model.embeddingModelVersion}.`,
+        );
+      }
+
+      // The document header always exists after staging (staging creates it with a NULL pointer for a
+      // new key), so activation only advances the mutable pointer. Old versions, chunks, and embeddings
+      // are left untouched. `active` is NULL for the first activation of a new key.
+      await client.query("UPDATE rag_documents SET current_version = $2 WHERE document_key = $1", [
+        documentKey,
+        version,
+      ]);
 
       await client.query("COMMIT");
     } catch (error) {
@@ -302,6 +531,20 @@ async function insertChunks(client: PoolClient, input: NewVersionInput): Promise
   }
 }
 
+/** pgvector text literal for a vector, e.g. `[0.1,0.2,0.3]`. Bound to a `$n::vector` placeholder. */
+function formatVector(embedding: number[]): string {
+  return `[${embedding.join(",")}]`;
+}
+
+/** Parse a pgvector text literal (`[0.1,0.2]`) back into a number array. */
+function parseVector(text: string): number[] {
+  const inner = text.trim().replace(/^\[/, "").replace(/\]$/, "").trim();
+  if (inner.length === 0) {
+    return [];
+  }
+  return inner.split(",").map((part) => Number(part));
+}
+
 function mapVersion(row: VersionRow): StoredDocumentVersion {
   return Object.freeze({
     documentKey: row.document_key,
@@ -337,5 +580,22 @@ function mapChunk(row: ChunkRow): StoredChunk {
     extractorVersion: row.extractor_version,
     createdAt: row.created_at.toISOString(),
     isActive: row.is_active,
+  });
+}
+
+function mapEmbedding(row: EmbeddingRow): StoredChunkEmbedding {
+  return Object.freeze({
+    documentKey: row.document_key,
+    documentVersion: row.document_version,
+    chunkIndex: row.chunk_index,
+    embeddingModel: row.embedding_model,
+    embeddingModelVersion: row.embedding_model_version,
+    embeddingDim: row.embedding_dim,
+    inputRecipe: row.input_recipe,
+    normalized: row.normalized,
+    inputHash: row.input_hash,
+    chunkContentHash: row.chunk_content_hash,
+    embedding: parseVector(row.embedding),
+    createdAt: row.created_at.toISOString(),
   });
 }
