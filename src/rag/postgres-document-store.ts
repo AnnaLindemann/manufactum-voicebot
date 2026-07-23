@@ -75,8 +75,13 @@ type EmbeddingRow = {
   document_key: string;
   document_version: number;
   chunk_index: number;
+  embedding_provider: string;
   embedding_model: string;
   embedding_model_version: string;
+  embedding_artifact: string;
+  embedding_dtype: string;
+  embedding_runtime: string;
+  embedding_profile_id: string;
   embedding_dim: number;
   input_recipe: string;
   normalized: boolean;
@@ -229,12 +234,13 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
 
   async getChunkEmbeddings(documentKey: string, version: number): Promise<StoredChunkEmbedding[]> {
     const result = await this.pool.query<EmbeddingRow>(
-      `SELECT document_key, document_version, chunk_index, embedding_model, embedding_model_version,
-              embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
+      `SELECT document_key, document_version, chunk_index, embedding_provider, embedding_model,
+              embedding_model_version, embedding_artifact, embedding_dtype, embedding_runtime,
+              embedding_profile_id, embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
               embedding::text AS embedding, created_at
          FROM rag_chunk_embeddings
         WHERE document_key = $1 AND document_version = $2
-        ORDER BY chunk_index ASC, embedding_model ASC, embedding_model_version ASC`,
+        ORDER BY chunk_index ASC, embedding_model ASC, embedding_model_version ASC, embedding_profile_id ASC`,
       [documentKey, version],
     );
     return result.rows.map(mapEmbedding);
@@ -335,19 +341,27 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
         // here — the immutability trigger forbids UPDATE). rowCount tells us whether a row was written.
         const inserted = await client.query(
           `INSERT INTO rag_chunk_embeddings
-             (document_key, document_version, chunk_index, embedding_model, embedding_model_version,
-              embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
+             (document_key, document_version, chunk_index, embedding_provider, embedding_model,
+              embedding_model_version, embedding_artifact, embedding_dtype, embedding_runtime,
+              embedding_profile_id, embedding_dim, input_recipe, normalized, input_hash, chunk_content_hash,
               embedding, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector, $12)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::vector, $17)
            ON CONFLICT
-             (document_key, document_version, chunk_index, embedding_model, embedding_model_version)
+             (document_key, document_version, chunk_index, embedding_provider, embedding_model,
+              embedding_model_version, embedding_artifact, embedding_dtype, embedding_runtime,
+              embedding_profile_id)
            DO NOTHING`,
           [
             embedding.documentKey,
             embedding.documentVersion,
             embedding.chunkIndex,
+            embedding.embeddingProvider,
             embedding.embeddingModel,
             embedding.embeddingModelVersion,
+            embedding.embeddingArtifact,
+            embedding.embeddingDtype,
+            embedding.embeddingRuntime,
+            embedding.embeddingProfileId,
             embedding.embeddingDim,
             embedding.inputRecipe,
             embedding.normalized,
@@ -359,27 +373,38 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
         );
 
         if (inserted.rowCount === 0) {
-          // A row already exists for this natural key. Idempotent no-op only if its content is
+          // A row already exists for this profile key. Idempotent no-op only if its content is
           // identical; a conflicting retry (same key, different vector/hashes/metadata) must fail
           // loudly instead of being silently swallowed. The vector is compared inside the database so
           // both sides are the same (float4) precision. created_at is excluded: it is a recording
           // timestamp, not embedding content, and a legitimate retry may carry a fresh one.
           const compared = await client.query<{ same: boolean }>(
-            `SELECT (embedding = $6::vector
-                     AND embedding_dim = $7
-                     AND input_recipe = $8
-                     AND normalized = $9
-                     AND input_hash = $10
-                     AND chunk_content_hash = $11) AS same
+            `SELECT (embedding = $11::vector
+                     AND embedding_dim = $12
+                     AND input_recipe = $13
+                     AND normalized = $14
+                     AND input_hash = $15
+                     AND chunk_content_hash = $16) AS same
                FROM rag_chunk_embeddings
               WHERE document_key = $1 AND document_version = $2 AND chunk_index = $3
-                AND embedding_model = $4 AND embedding_model_version = $5`,
+                AND embedding_provider = $4
+                AND embedding_model = $5
+                AND embedding_model_version = $6
+                AND embedding_artifact = $7
+                AND embedding_dtype = $8
+                AND embedding_runtime = $9
+                AND embedding_profile_id = $10`,
             [
               embedding.documentKey,
               embedding.documentVersion,
               embedding.chunkIndex,
+              embedding.embeddingProvider,
               embedding.embeddingModel,
               embedding.embeddingModelVersion,
+              embedding.embeddingArtifact,
+              embedding.embeddingDtype,
+              embedding.embeddingRuntime,
+              embedding.embeddingProfileId,
               formatVector(embedding.embedding),
               embedding.embeddingDim,
               embedding.inputRecipe,
@@ -449,10 +474,25 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
                WHERE e.document_key = c.document_key
                  AND e.document_version = c.document_version
                  AND e.chunk_index = c.chunk_index
-                 AND e.embedding_model = $3
-                 AND e.embedding_model_version = $4
+                 AND e.embedding_provider = $3
+                 AND e.embedding_model = $4
+                 AND e.embedding_model_version = $5
+                 AND e.embedding_artifact = $6
+                 AND e.embedding_dtype = $7
+                 AND e.embedding_runtime = $8
+                 AND e.embedding_profile_id = $9
             )`,
-        [documentKey, version, model.embeddingModel, model.embeddingModelVersion],
+        [
+          documentKey,
+          version,
+          model.embeddingProvider,
+          model.embeddingModel,
+          model.embeddingModelVersion,
+          model.embeddingArtifact,
+          model.embeddingDtype,
+          model.embeddingRuntime,
+          model.embeddingProfileId,
+        ],
       );
       const missing = gate.rows[0]?.missing ?? 0;
       if (missing > 0) {
@@ -588,8 +628,13 @@ function mapEmbedding(row: EmbeddingRow): StoredChunkEmbedding {
     documentKey: row.document_key,
     documentVersion: row.document_version,
     chunkIndex: row.chunk_index,
+    embeddingProvider: row.embedding_provider,
     embeddingModel: row.embedding_model,
     embeddingModelVersion: row.embedding_model_version,
+    embeddingArtifact: row.embedding_artifact,
+    embeddingDtype: row.embedding_dtype,
+    embeddingRuntime: row.embedding_runtime,
+    embeddingProfileId: row.embedding_profile_id,
     embeddingDim: row.embedding_dim,
     inputRecipe: row.input_recipe,
     normalized: row.normalized,

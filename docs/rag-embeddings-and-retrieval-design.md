@@ -34,21 +34,30 @@ DDL-эскизы носят иллюстративный характер и п�
 
 ### Рекомендация
 
-- **Модель:** `intfloat/multilingual-e5-large` (open-weights, MIT).
-- **Размерность вектора:** **1024**.
-- **Способ запуска:** локально/в процессе, через ONNX-рантайм в Node (например, Transformers.js —
-  `@xenova/transformers`), **без внешнего API и без ключей**. Веса открыты, запуск бесплатен —
-  требование «модель эмбеддингов должна быть бесплатной» выполняется в сильной форме: нет ни платы за
-  вызовы, ни provider-секрета, ни исходящих запросов к стороннему сервису.
+- **Модель test phase:** `Xenova/multilingual-e5-small` (ONNX-артефакт для Transformers.js, base model
+  `intfloat/multilingual-e5-small`).
+- **Pinned revision:** `ae61bf0193ce3851dc8a45147e459b04ed783d8a`.
+- **Артефакт:** `onnx/model_quantized.onnx`, SHA-256
+  `f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193`, remote file size **118 MB**.
+- **Runtime:** `@xenova/transformers@2.17.2`, локально внутри существующего Node.js backend на Render.
+- **Quantization/dtype:** quantized ONNX (`int8-quantized`), `quantized: true`,
+  `model_file_name: "model"`.
+- **Размерность вектора:** **384**.
+- **Способ запуска:** локально/в процессе, через Transformers.js и ONNX runtime, **без внешнего API и
+  без ключей**. Нет Hugging Face Endpoints, paid provider или embedding API.
 
 ### Почему именно она
 
-- **Немецкий язык.** `multilingual-e5-large` — сильная мультиязычная модель (обучена в т.ч. на
-  немецком), стабильно занимает верхние позиции для retrieval на немецких парах «вопрос → пассаж». Это
-  ровно наш случай: контент — это Q/A-пары FAQ (`FaqItem`), а запрос — вопрос звонящего.
+- **Немецкий язык.** `multilingual-e5-small` — мультиязычная модель семейства E5 (обучена в т.ч. на
+  немецком) и сохраняет нужный retrieval recipe «вопрос → пассаж» при размере, совместимом с бесплатным
+  Render runtime. Это ровно наш случай: контент — это Q/A-пары FAQ (`FaqItem`), а запрос — вопрос
+  звонящего.
 - **Бесплатность и приватность.** Открытые веса, локальный инференс. Нет платы за эмбеддинги (см.
   категорию «RAG embedding creation» в `cost-and-token-strategy.md`), нет утечки текста запросов
   наружу, нет нового секрета в `.env`.
+- **Render Free runtime.** Для тестовой фазы выбран small-вариант, потому что `large` слишком тяжёл для
+  бесплатного Render runtime. Холодный старт и повторная загрузка после spin-down допустимы в test
+  phase; `/health` не импортирует, не скачивает и не загружает модель.
 - **Совместимость с офлайн-пайплайном.** Ингестия у нас офлайн (Phase 11), поэтому стоимость инференса
   для пассажей амортизируется вне онлайна. На запрос (Phase 12) эмбеддится только короткий вопрос
   звонящего — это дёшево на CPU.
@@ -87,17 +96,17 @@ DDL-эскизы носят иллюстративный характер и п�
 
 - **`BAAI/bge-m3`** (1024, open-weights) — тоже отличная мультиязычная модель, префиксы не требуются.
   Приемлемая замена; вынесена в запас, чтобы не смешивать два рецепта в одном решении.
-- **`intfloat/multilingual-e5-base`** (**768**) — легче и быстрее, качество на немецком чуть ниже.
-  Разумный вариант, если ресурсы инференса ограничены. Смена base↔large (768 vs 1024) — это новый
-  `embedding_model` и повторный эмбеддинг (см. §4–5), а не изменение существующих строк; при этом схема
-  §2 хранит векторы разной размерности **без миграции типа столбца** (типизованный `vector` без фиксации
-  dim + частичные индексы под каждую модель), поэтому появление модели с другой размерностью не ломает
-  таблицу.
+- **`intfloat/multilingual-e5-base`** (**768**) — потенциальный будущий вариант с другим балансом
+  качество/ресурсы. Переход на него будет новой фазой: новый profile, новая миграционная стратегия и
+  повторный эмбеддинг, а не изменение существующих строк.
 - **Платные API эмбеддингов** (OpenAI, Cohere, Mistral) — **отклонены**: не бесплатны и/или требуют
   секрета и исходящих запросов, что противоречит требованию задачи.
 
-> Итог: рекомендуемая модель — `intfloat/multilingual-e5-large`, **dim = 1024**, косинусная метрика,
-> нормализованные векторы, E5-префиксы. Значение размерности далее по документу — `1024`.
+> Итог для test phase: профиль `local-transformers-js:xenova-multilingual-e5-small:...`, модель
+> `Xenova/multilingual-e5-small`, pinned revision
+> `ae61bf0193ce3851dc8a45147e459b04ed783d8a`, artifact `onnx/model_quantized.onnx`, **dim = 384**,
+> косинусная метрика, нормализованные векторы, E5-префиксы. Значение размерности далее по документу —
+> `384`.
 
 ---
 
@@ -109,9 +118,9 @@ DDL-эскизы носят иллюстративный характер и п�
 
 - `rag_chunks` неизменяема и уже несёт содержание и трассируемость чанка; она не должна знать про модель
   эмбеддинга, размерность или pgvector;
-- у одного чанка может существовать **несколько** эмбеддингов одновременно — по одному на каждую
-  (модель × версия модели). Это и есть механизм безопасного re-embedding: новые векторы добавляются
-  рядом со старыми, ничего не переписывая;
+- у одного чанка может существовать **несколько** эмбеддингов одновременно — по одному на каждый полный
+  embedding profile (provider × model × revision × artifact × dtype × runtime × profile ID). Это и есть
+  механизм безопасного re-embedding: новые векторы добавляются рядом со старыми, ничего не переписывая;
 - расширение pgvector и его индексы изолируются в одной таблице.
 
 `rag_chunk_embeddings` — **append-only и неизменяемая**, ровно как `rag_document_versions` и
@@ -131,8 +140,13 @@ CREATE TABLE rag_chunk_embeddings (
   chunk_index       integer     NOT NULL,
 
   -- Идентичность эмбеддинга: какой моделью и по какому рецепту получен вектор.
-  embedding_model         text     NOT NULL,   -- напр. 'intfloat/multilingual-e5-large'
-  embedding_model_version text     NOT NULL,   -- закреплённая ревизия/хеш ONNX-файла модели
+  embedding_provider      text     NOT NULL,   -- 'local-transformers-js'
+  embedding_model         text     NOT NULL,   -- 'Xenova/multilingual-e5-small'
+  embedding_model_version text     NOT NULL,   -- закреплённая immutable HF revision
+  embedding_artifact      text     NOT NULL,   -- 'onnx/model_quantized.onnx'
+  embedding_dtype         text     NOT NULL,   -- 'int8-quantized'
+  embedding_runtime       text     NOT NULL,   -- '@xenova/transformers@2.17.2'
+  embedding_profile_id    text     NOT NULL,   -- полный ID единого profile
   embedding_dim           integer  NOT NULL CHECK (embedding_dim > 0),
   input_recipe            text     NOT NULL,    -- напр. 'e5:passage:v1' (сборка текста + префикс)
   normalized              boolean  NOT NULL,    -- L2-нормализация применена
@@ -141,16 +155,26 @@ CREATE TABLE rag_chunk_embeddings (
   input_hash          text        NOT NULL,     -- SHA-256 ровно той строки, что подана в модель
   chunk_content_hash  text        NOT NULL,     -- копия rag_chunks.content_hash на момент эмбеддинга
 
-  -- Сам вектор и время создания. Тип `vector` БЕЗ фиксации размерности: столбец принимает векторы
-  -- разной длины от разных моделей. CHECK связывает фактическую длину вектора с объявленной
-  -- embedding_dim, чтобы строка не могла соврать о своей размерности.
-  embedding   vector       NOT NULL,
+  -- Сам вектор и время создания. Для test profile столбец фиксируется как vector(384); миграция на
+  -- этот профиль fail-fast останавливается, если уже существуют immutable embeddings другой размерности.
+  embedding   vector(384)  NOT NULL,
   created_at  timestamptz  NOT NULL,
 
   CHECK (vector_dims(embedding) = embedding_dim),
 
-  -- Один вектор на (чанк × модель × версия модели): re-embedding добавляет строки, не переписывает.
-  PRIMARY KEY (document_key, document_version, chunk_index, embedding_model, embedding_model_version),
+  -- Один вектор на (чанк × полный embedding profile): re-embedding добавляет строки, не переписывает.
+  PRIMARY KEY (
+    document_key,
+    document_version,
+    chunk_index,
+    embedding_provider,
+    embedding_model,
+    embedding_model_version,
+    embedding_artifact,
+    embedding_dtype,
+    embedding_runtime,
+    embedding_profile_id
+  ),
 
   FOREIGN KEY (document_key, document_version, chunk_index)
     REFERENCES rag_chunks (document_key, document_version, chunk_index)
@@ -171,28 +195,23 @@ CREATE TRIGGER rag_chunk_embeddings_immutable
   эмбеддинг неизменяемы, они всегда согласованы; поле служит быстрой проверкой целостности и делает
   строку эмбеддинга самодостаточной для аудита (не требуется join, чтобы узнать, что именно эмбеддилось).
 
-### Поддержка будущих моделей с другой размерностью (принятое решение)
+### Поддержка test profile 384 (принятое решение)
 
-Выбран вариант **типизованного `vector` без фиксации размерности + частичные индексы под каждую
-(модель × версию) + контроль размерности через `CHECK`**. Альтернатива — «жёстко ограничить все
-поддерживаемые модели 1024 измерениями» — **отклонена**: она честна, но означает, что переход на
-`e5-base` (768) или любую будущую модель другой размерности требует новой таблицы/миграции типа столбца,
-тогда как заявленная цель — чтобы re-embedding другой моделью не ломал схему.
+Для test phase выбран фиксированный pgvector-тип **`vector(384)`**, потому что активный runtime profile
+ровно один: `Xenova/multilingual-e5-small` pinned revision + quantized ONNX artifact. Это упрощает
+схему и делает несоответствие размерности fail-fast.
 
 Как это работает и почему корректно:
 
-- **Столбец `embedding vector` без `(dim)`** в pgvector принимает векторы **разной** длины. Поэтому
-  строки `e5-large` (1024) и, скажем, будущей модели (768/384/…) сосуществуют в одной неизменяемой
-  таблице без ALTER-а типа.
-- **`CHECK (vector_dims(embedding) = embedding_dim)`** не даёт строке соврать о размерности: объявленная
-  `embedding_dim` всегда равна фактической длине вектора. Это сохраняет самодостаточность строки для
-  аудита и делает несогласованную запись невозможной.
-- **Индексы строятся частичными, по одной (модель × версия модели)** — см. §5. Векторный индекс pgvector
-  требует единой размерности, а внутри одной `(embedding_model, embedding_model_version)` размерность по
-  определению постоянна, поэтому частичный индекс под конкретную модель корректно типизирован. Разные
-  модели получают разные частичные индексы и не мешают друг другу.
-- Ретрив (§5) всегда фильтрует по активной `(модель, версия)`, то есть по сравнимым между собой векторам
-  одной размерности; смешивания пространств разной длины в одном сравнении не возникает по построению.
+- **Столбец `embedding vector(384)`** принимает только 384-мерные векторы выбранного test profile.
+- **`CHECK (vector_dims(embedding) = embedding_dim)`** и дополнительный `CHECK (embedding_dim = 384)` не
+  дают строке соврать о размерности.
+- **Полная идентичность profile хранится в каждой строке**: provider, model, revision, artifact, dtype,
+  runtime и profile ID. Loader получает ту же revision из единого typed profile.
+- **Новая модель или другая размерность** не смешивается с текущими immutable rows. Это будет отдельная
+  миграционная работа: если в таблице уже есть embeddings, миграция на другой `vector(N)` должна
+  остановиться с ошибкой, пока оператор явно не решит, как выводить старые immutable rows из
+  использования.
 
 ---
 
@@ -201,10 +220,15 @@ CREATE TRIGGER rag_chunk_embeddings_immutable
 Чтобы re-embedding был воспроизводимым и сравнимым, каждая строка `rag_chunk_embeddings` самодостаточно
 описывает, **как** получен вектор:
 
-- `embedding_model` — идентификатор модели (`intfloat/multilingual-e5-large`);
-- `embedding_model_version` — закреплённая ревизия весов/хеш ONNX-артефакта. Обязательно: две ревизии
-  «той же» модели могут давать разные векторы, и смешивать их в одном поиске нельзя;
-- `embedding_dim` — размерность (1024);
+- `embedding_provider` — `local-transformers-js`;
+- `embedding_model` — идентификатор runtime model (`Xenova/multilingual-e5-small`);
+- `embedding_model_version` — pinned immutable Hugging Face revision
+  (`ae61bf0193ce3851dc8a45147e459b04ed783d8a`), совпадающая с тем, что получает loader;
+- `embedding_artifact` — `onnx/model_quantized.onnx`;
+- `embedding_dtype` — `int8-quantized`;
+- `embedding_runtime` — установленный runtime package (`@xenova/transformers@2.17.2`);
+- `embedding_profile_id` — полный ID единого profile;
+- `embedding_dim` — размерность (384);
 - `input_recipe` — версия рецепта сборки входной строки, включая E5-префикс (`e5:passage:v1`). Любая
   смена сборки текста чанка или префикса — это новый рецепт;
 - `normalized` — применялась ли L2-нормализация (определяет корректную метрику);
@@ -215,11 +239,11 @@ CREATE TRIGGER rag_chunk_embeddings_immutable
 
 Ключевые следствия для re-embedding:
 
-- **Новая модель или новая её версия не трогает старые строки.** Она добавляет новый набор строк с новым
-  `(embedding_model, embedding_model_version)`. Старые векторы остаются валидными для отладки и отката.
+- **Новая модель, revision, artifact или runtime profile не трогает старые строки.** Она добавляет новый
+  набор строк с новым полным profile identity. Старые векторы остаются валидными для отладки и отката.
 - **Активная модель ретрива — это конфигурация рантайма**, а не флаг в БД: ретрив (§6) фильтрует по
-  `(embedding_model, embedding_model_version)`, совпадающим с моделью, которой эмбеддится запрос. Так
-  запрос и пассаж всегда в одном векторном пространстве.
+  полному profile identity, совпадающему с моделью, которой эмбеддится запрос. Так запрос и пассаж всегда
+  в одном векторном пространстве.
 - **Метрика ретрива не должна храниться в векторе** — она задаётся индексом и запросом; но `normalized`
   и `input_recipe` фиксируют предположения, при которых косинусная близость осмысленна.
 
@@ -240,7 +264,7 @@ CREATE TRIGGER rag_chunk_embeddings_immutable
 
 Проверка покрытия — тот же по духу гейт, что и при активации версии (§4), но по **всем** активным
 чанкам, а не по одному документу: активация новой модели допустима, только если не существует ни одного
-активного чанка без эмбеддинга новой `(embedding_model, embedding_model_version)`.
+активного чанка без эмбеддинга нового полного profile identity.
 
 ```sql
 -- Переключение активной модели допустимо, только если это вернёт 0.
@@ -254,8 +278,13 @@ SELECT count(*)
       WHERE e.document_key      = c.document_key
         AND e.document_version  = c.document_version
         AND e.chunk_index       = c.chunk_index
-        AND e.embedding_model         = $1         -- НОВАЯ модель
-        AND e.embedding_model_version = $2         -- НОВАЯ версия модели
+        AND e.embedding_provider      = $1         -- НОВЫЙ provider
+        AND e.embedding_model         = $2         -- НОВАЯ модель
+        AND e.embedding_model_version = $3         -- НОВАЯ revision
+        AND e.embedding_artifact      = $4         -- НОВЫЙ artifact
+        AND e.embedding_dtype         = $5         -- НОВЫЙ dtype
+        AND e.embedding_runtime       = $6         -- НОВЫЙ runtime package/version
+        AND e.embedding_profile_id    = $7         -- НОВЫЙ profile ID
    );
 ```
 
@@ -289,9 +318,9 @@ SELECT count(*)
 
 **Фаза B — эмбеддинг чанков.**
 
-- Офлайн-шаг вычисляет вектор для **каждого** чанка версии `N+1` активной моделью и вставляет строки в
-  `rag_chunk_embeddings`. Шаг идемпотентен: PK `(chunk … , model, model_version)` не даёт дублей, а
-  неизменяемость запрещает перезапись.
+- Офлайн-шаг вычисляет вектор для **каждого** чанка версии `N+1` активным embedding profile и вставляет
+  строки в `rag_chunk_embeddings`. Шаг идемпотентен: PK `(chunk … , full profile identity)` не даёт
+  дублей, а неизменяемость запрещает перезапись.
 
 **Фаза C — активация (одна транзакция, под блокировкой).**
 
@@ -315,8 +344,13 @@ SELECT count(*)
        WHERE e.document_key      = c.document_key
          AND e.document_version  = c.document_version
          AND e.chunk_index       = c.chunk_index
-         AND e.embedding_model         = $3     -- активная модель
-         AND e.embedding_model_version = $4     -- активная версия модели
+         AND e.embedding_provider      = $3     -- активный provider
+         AND e.embedding_model         = $4     -- активная модель
+         AND e.embedding_model_version = $5     -- активная revision
+         AND e.embedding_artifact      = $6     -- активный artifact
+         AND e.embedding_dtype         = $7     -- активный dtype
+         AND e.embedding_runtime       = $8     -- активный runtime package/version
+         AND e.embedding_profile_id    = $9     -- активный profile ID
     );
 ```
 
@@ -347,7 +381,7 @@ SELECT count(*)
 - **Повтор той же застейдженной версии после сбоя эмбеддинга.** Если эмбеддинг `N+1` упал на середине,
   повтор идёт **по той же самой версии `N+1`**, а не создаёт `N+2`. Строки версии и чанков `N+1` уже
   неизменяемо лежат; повтор лишь **дозаписывает недостающие** строки в `rag_chunk_embeddings`. Шаг
-  идемпотентен: PK `(чанк, модель, версия модели)` отсекает уже посчитанные векторы, неизменяемость
+  идемпотентен: PK `(чанк, полный embedding profile)` отсекает уже посчитанные векторы, неизменяемость
   запрещает перезапись, поэтому повтор безопасно «досчитывает хвост» и затем проходит гейт §4-C.
 - **Отказ от застейдженной версии — открытый вопрос, не тихий путь.** Нормальный ожидаемый путь для
   застейдженной версии — быть доведённой до активации повтором эмбеддинга. Просто «бросить» `N+1` нельзя
@@ -384,32 +418,37 @@ top-k (recall = 100%), не требует настройки и не вноси
 
 ```sql
 -- НЕ в базовой линии. Добавляется позже, только если бенчмарк докажет пользу на реальном корпусе.
--- Частичный индекс под одну (модель × версию модели): внутри неё размерность постоянна, поэтому
--- типизованный `vector`-столбец без фиксированного dim индексируется корректно (см. §2).
-CREATE INDEX rag_chunk_embeddings_hnsw_e5_large
+-- Частичный индекс под один full profile: внутри него размерность постоянна.
+CREATE INDEX rag_chunk_embeddings_hnsw_e5_small
   ON rag_chunk_embeddings USING hnsw (embedding vector_cosine_ops)
-  WHERE embedding_model = 'intfloat/multilingual-e5-large'
-    AND embedding_model_version = '<pinned>';
+  WHERE embedding_provider = 'local-transformers-js'
+    AND embedding_model = 'Xenova/multilingual-e5-small'
+    AND embedding_model_version = 'ae61bf0193ce3851dc8a45147e459b04ed783d8a'
+    AND embedding_artifact = 'onnx/model_quantized.onnx'
+    AND embedding_dtype = 'int8-quantized'
+    AND embedding_runtime = '@xenova/transformers@2.17.2'
+    AND embedding_profile_id = 'local-transformers-js:xenova-multilingual-e5-small:ae61bf0193ce3851dc8a45147e459b04ed783d8a:onnx-model-quantized:int8:v1';
 ```
 
 - **Метрика — косинусная**, согласована с нормализованными E5-векторами (`normalized = true`);
   используется один и тот же оператор `<=>` и в точном переборе, и (позже) в индексе.
-- **Частичный индекс на каждую (модель × версию модели).** Это обязательное следствие §2: столбец
-  `vector` не фиксирует размерность, а векторный индекс требует единой размерности — она постоянна только
-  внутри одной модели. Разные модели → разные частичные индексы, не мешающие друг другу.
-- **Фильтрация по модели и активности — в `WHERE`.** И точный перебор, и HNSW опираются на префильтрацию
-  join’ами по активной версии и активной модели; при малом корпусе это дёшево.
+- **Частичный индекс на каждый full profile.** Это обязательное следствие §2: векторный индекс требует
+  единой размерности, и она постоянна только внутри одного profile. Разные модели/артефакты → разные
+  частичные индексы, не мешающие друг другу.
+- **Фильтрация по profile и активности — в `WHERE`.** И точный перебор, и HNSW опираются на
+  префильтрацию join’ами по активной версии и активному embedding profile; при малом корпусе это дёшево.
 - **Почему не IVFFlat даже потом:** если ANN всё же понадобится, HNSW не требует обучения (`lists`) и
   переобучения при росте корпуса; но выбор ANN откладывается до бенчмарка и здесь не фиксируется жёстко.
 
 ### Запрос ретрива (Phase 12; здесь — только стратегия, без эндпоинта)
 
-1. Эмбеддить вопрос звонящего **той же активной моделью** с префиксом `"query: "`, L2-нормализация.
+1. Эмбеддить вопрос звонящего **тем же активным embedding profile** с префиксом `"query: "`,
+   L2-нормализация.
 2. Ограничить кандидатов:
    - **только активные чанки:** join `rag_chunk_embeddings → rag_chunks → rag_documents`, условие
      `document_version = rag_documents.current_version`;
-   - **та же модель:** `embedding_model` и `embedding_model_version` равны активной конфигурации (иначе
-     запрос и пассаж в разных пространствах);
+   - **тот же profile:** provider, model, revision, artifact, dtype, runtime и profile ID равны активной
+     конфигурации (иначе запрос и пассаж могут оказаться в разных пространствах);
    - **метаданные-фильтры при пользе:** `language = 'de'`, при необходимости `document_type` (напр.
      `account-faq`) — по требованию `rag-design.md` («metadata filters where useful»).
 3. Сортировать по косинусному расстоянию (`embedding <=> $query`), `LIMIT k` с малым `k` (по умолчанию
@@ -429,10 +468,16 @@ SELECT c.chunk_key, c.source_url, c.document_version, c.title, c.document_type,
                       AND c.document_version = e.document_version
                       AND c.chunk_index = e.chunk_index
  WHERE e.document_version = d.current_version        -- активные чанки
-   AND e.embedding_model = $2 AND e.embedding_model_version = $3
+   AND e.embedding_provider = $2
+   AND e.embedding_model = $3
+   AND e.embedding_model_version = $4
+   AND e.embedding_artifact = $5
+   AND e.embedding_dtype = $6
+   AND e.embedding_runtime = $7
+   AND e.embedding_profile_id = $8
    AND c.language = 'de'
  ORDER BY e.embedding <=> $1                          -- косинусное расстояние
- LIMIT $4;                                            -- k = 3 (макс. 5)
+ LIMIT $9;                                            -- k = 3 (макс. 5)
 ```
 
 ---
@@ -453,8 +498,8 @@ SELECT c.chunk_key, c.source_url, c.document_version, c.title, c.document_type,
   ложную видимость калибровки. Порог не вводится в эксплуатацию, пока набор не собран и значение по нему
   не выбрано (по духу `D-016`: параметр устанавливается по измерению, а не по догадке).
 - **Хранение — как model-bound конфигурация.** Итоговое значение хранится как конфигурация приложения,
-  **привязанная к активной `(embedding_model, embedding_model_version)`**: порог, откалиброванный для
-  `e5-large`, не переносится на `e5-base`/`bge-m3` и при смене активной модели калибруется заново. Это не
+  **привязанная к активному embedding profile**: порог, откалиброванный для `multilingual-e5-small`, не
+  переносится на другую модель или другой recipe и при смене активной модели калибруется заново. Это не
   секрет.
 - Опционально — маржа между top-1 и top-2 как вторичный сигнал уверенности; вводить только при данных
   калибровки, не по умолчанию.

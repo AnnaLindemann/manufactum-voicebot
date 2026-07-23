@@ -24,8 +24,8 @@
  * - **stage** (`stageVersion`) — insert the immutable version and its chunks **without** advancing the
  *   active pointer; for a brand-new key no `rag_documents` header is created yet, so the document is
  *   simply invisible to retrieval until activated;
- * - **embed** (`saveChunkEmbeddings`) — persist one immutable embedding row per (chunk × model × model
- *   version) into `rag_chunk_embeddings`; append-only and idempotent;
+ * - **embed** (`saveChunkEmbeddings`) — persist one immutable embedding row per (chunk × full embedding
+ *   profile) into `rag_chunk_embeddings`; append-only and idempotent;
  * - **activate** (`activateVersion`) — under a per-document lock, verify every chunk of the target
  *   version has an embedding for the active model (readiness gate), then advance/create the active
  *   pointer atomically.
@@ -123,20 +123,26 @@ export type NewVersionInput = {
  * comparable without a join.
  *
  * The embedding is bound to exactly one immutable chunk of one document version via
- * `(documentKey, documentVersion, chunkIndex)`. `(embeddingModel, embeddingModelVersion)` identify the
- * model and the pinned weight revision; two revisions of "the same" model may yield different vectors
- * and must never be mixed in one search. `embeddingDim` must equal `embedding.length` (the DB mirrors
- * this with `CHECK (vector_dims(embedding) = embedding_dim)`). `inputRecipe` records the input-string
- * recipe including the E5 task prefix; `inputHash` is the SHA-256 of the exact string fed to the model;
- * `chunkContentHash` copies the chunk's `contentHash` at embedding time. `normalized` records whether
- * L2 normalization was applied. This module never computes the vector — the caller supplies it.
+ * `(documentKey, documentVersion, chunkIndex)`. Provider, model, pinned revision, artifact, dtype,
+ * runtime, and profile ID identify the exact embedding profile; two profiles may yield different
+ * vectors and must never be mixed in one search. `embeddingDim` must equal `embedding.length` (the DB
+ * mirrors this with `CHECK (vector_dims(embedding) = embedding_dim)`). `inputRecipe` records the
+ * input-string recipe including the E5 task prefix; `inputHash` is the SHA-256 of the exact string fed
+ * to the model; `chunkContentHash` copies the chunk's `contentHash` at embedding time. `normalized`
+ * records whether L2 normalization was applied. This module never computes the vector — the caller
+ * supplies it.
  */
 export type ChunkEmbeddingCore = {
   documentKey: string;
   documentVersion: number;
   chunkIndex: number;
+  embeddingProvider: string;
   embeddingModel: string;
   embeddingModelVersion: string;
+  embeddingArtifact: string;
+  embeddingDtype: string;
+  embeddingRuntime: string;
+  embeddingProfileId: string;
   embeddingDim: number;
   inputRecipe: string;
   normalized: boolean;
@@ -153,11 +159,16 @@ export type StoredChunkEmbedding = ChunkEmbeddingCore;
 /**
  * The active embedding model identity used to gate activation and (later) to filter retrieval. The
  * active model is runtime configuration, not a stored flag: activation succeeds only when every chunk
- * of the target version carries an embedding for exactly this `(embeddingModel, embeddingModelVersion)`.
+ * of the target version carries an embedding for exactly this full embedding profile identity.
  */
 export type EmbeddingModelRef = {
+  embeddingProvider: string;
   embeddingModel: string;
   embeddingModelVersion: string;
+  embeddingArtifact: string;
+  embeddingDtype: string;
+  embeddingRuntime: string;
+  embeddingProfileId: string;
 };
 
 /**
@@ -214,7 +225,7 @@ export interface RagDocumentStore {
 
   /**
    * **Persist** embeddings for already-staged chunks (design §4-B). Append-only and idempotent: a row
-   * that already exists for a `(chunk, embeddingModel, embeddingModelVersion)` is left untouched, so a
+   * that already exists for a `(chunk, full embedding profile)` is left untouched, so a
    * retry after a partial embedding run safely fills in only the missing rows. Every embedding must
    * reference an existing chunk and its `embedding.length` must equal `embeddingDim`.
    */

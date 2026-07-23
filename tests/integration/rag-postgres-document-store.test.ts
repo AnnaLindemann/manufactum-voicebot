@@ -6,6 +6,10 @@ import type {
   DocumentVersionCore,
   EmbeddingModelRef,
 } from "../../src/rag/document-store.js";
+import {
+  embeddingProfileMetadata,
+  embeddingProfileModelRef,
+} from "../../src/rag/embedding-profile.js";
 import { runMigrations } from "../../src/rag/migrate.js";
 import { PostgresRagDocumentStore } from "../../src/rag/postgres-document-store.js";
 import { RagStorageError } from "../../src/rag/in-memory-document-store.js";
@@ -22,10 +26,8 @@ import type { ExtractedFaqPage } from "../../src/rag/types.js";
  */
 const DATABASE_URL = process.env.RAG_TEST_DATABASE_URL?.trim();
 
-const MODEL: EmbeddingModelRef = {
-  embeddingModel: "intfloat/multilingual-e5-large",
-  embeddingModelVersion: "rev-1",
-};
+const MODEL: EmbeddingModelRef = embeddingProfileModelRef();
+const PROFILE_METADATA = embeddingProfileMetadata();
 
 function metadata(): IngestionMetadata {
   return {
@@ -103,14 +105,10 @@ function embeddingCore(
     documentKey: "doc",
     documentVersion: version,
     chunkIndex: index,
-    embeddingModel: MODEL.embeddingModel,
-    embeddingModelVersion: MODEL.embeddingModelVersion,
-    embeddingDim: 3,
-    inputRecipe: "e5:passage:v1",
-    normalized: true,
+    ...PROFILE_METADATA,
     inputHash: `input-hash-v${String(version)}-${String(index)}`,
     chunkContentHash: `hash-${String(index)}`,
-    embedding: [0.1, 0.2, 0.3],
+    embedding: Array.from({ length: PROFILE_METADATA.embeddingDim }, () => 0.1),
     createdAt: "2026-07-21T00:00:10.000Z",
     ...overrides,
   };
@@ -179,9 +177,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL.length === 0)(
 
       const embeddings = await store.getChunkEmbeddings("mein-konto", 1);
       expect(embeddings).toHaveLength(2);
-      expect(embeddings[0]?.embedding).toEqual([0.1, 0.2, 0.3]);
+      expect(embeddings[0]?.embedding).toHaveLength(PROFILE_METADATA.embeddingDim);
+      expect(embeddings[0]?.embedding[0]).toBeCloseTo(0.1);
+      expect(embeddings[0]?.embeddingProvider).toBe(PROFILE_METADATA.embeddingProvider);
       expect(embeddings[0]?.embeddingModel).toBe(MODEL.embeddingModel);
-      expect(embeddings[0]?.embeddingDim).toBe(3);
+      expect(embeddings[0]?.embeddingModelVersion).toBe(MODEL.embeddingModelVersion);
+      expect(embeddings[0]?.embeddingArtifact).toBe(PROFILE_METADATA.embeddingArtifact);
+      expect(embeddings[0]?.embeddingDtype).toBe(PROFILE_METADATA.embeddingDtype);
+      expect(embeddings[0]?.embeddingRuntime).toBe(PROFILE_METADATA.embeddingRuntime);
+      expect(embeddings[0]?.embeddingProfileId).toBe(PROFILE_METADATA.embeddingProfileId);
+      expect(embeddings[0]?.embeddingDim).toBe(PROFILE_METADATA.embeddingDim);
       expect(embeddings[0]?.normalized).toBe(true);
       expect(embeddings[0]?.inputRecipe).toBe("e5:passage:v1");
     });
@@ -281,7 +286,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL.length === 0)(
       await store.saveChunkEmbeddings([embeddingCore(1, 1)]);
       // Same (chunk, model, model version) key but a different vector must fail, not DO NOTHING.
       await expect(
-        store.saveChunkEmbeddings([embeddingCore(1, 1, { embedding: [0.9, 0.8, 0.7] })]),
+        store.saveChunkEmbeddings([
+          embeddingCore(1, 1, {
+            embedding: Array.from({ length: PROFILE_METADATA.embeddingDim }, () => 0.9),
+          }),
+        ]),
       ).rejects.toThrow(RagStorageError);
       // A different input hash also conflicts.
       await expect(
@@ -290,7 +299,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL.length === 0)(
       // The original row is preserved unchanged.
       const embeddings = await store.getChunkEmbeddings("doc", 1);
       expect(embeddings).toHaveLength(1);
-      expect(embeddings[0]?.embedding).toEqual([0.1, 0.2, 0.3]);
+      expect(embeddings[0]?.embedding).toHaveLength(PROFILE_METADATA.embeddingDim);
     });
 
     it("rejects an embedding for a non-existent chunk (foreign key)", async () => {
@@ -318,7 +327,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL.length === 0)(
     it("rejects an embedding whose declared dimension mismatches the vector length", async () => {
       await store.stageVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
       await expect(
-        store.saveChunkEmbeddings([embeddingCore(1, 1, { embeddingDim: 4 })]),
+        store.saveChunkEmbeddings([embeddingCore(1, 1, { embeddingDim: 383 })]),
       ).rejects.toThrow(RagStorageError);
     });
 

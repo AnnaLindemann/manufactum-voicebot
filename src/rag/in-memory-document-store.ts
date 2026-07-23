@@ -236,8 +236,13 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
         (candidate) =>
           candidate.documentVersion === embedding.documentVersion &&
           candidate.chunkIndex === embedding.chunkIndex &&
+          candidate.embeddingProvider === embedding.embeddingProvider &&
           candidate.embeddingModel === embedding.embeddingModel &&
-          candidate.embeddingModelVersion === embedding.embeddingModelVersion,
+          candidate.embeddingModelVersion === embedding.embeddingModelVersion &&
+          candidate.embeddingArtifact === embedding.embeddingArtifact &&
+          candidate.embeddingDtype === embedding.embeddingDtype &&
+          candidate.embeddingRuntime === embedding.embeddingRuntime &&
+          candidate.embeddingProfileId === embedding.embeddingProfileId,
       );
       if (existing === undefined) {
         entry.embeddings.push(freezeEmbedding(embedding));
@@ -294,8 +299,13 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
           (embedding) =>
             embedding.documentVersion === version &&
             embedding.chunkIndex === chunk.chunkIndex &&
+            embedding.embeddingProvider === model.embeddingProvider &&
             embedding.embeddingModel === model.embeddingModel &&
-            embedding.embeddingModelVersion === model.embeddingModelVersion,
+            embedding.embeddingModelVersion === model.embeddingModelVersion &&
+            embedding.embeddingArtifact === model.embeddingArtifact &&
+            embedding.embeddingDtype === model.embeddingDtype &&
+            embedding.embeddingRuntime === model.embeddingRuntime &&
+            embedding.embeddingProfileId === model.embeddingProfileId,
         ),
     ).length;
   }
@@ -338,6 +348,11 @@ function stagedVersionNumber(entry: DocumentEntry): number | undefined {
 function embeddingContentEqual(a: ChunkEmbeddingCore, b: ChunkEmbeddingCore): boolean {
   return (
     a.embeddingDim === b.embeddingDim &&
+    a.embeddingProvider === b.embeddingProvider &&
+    a.embeddingArtifact === b.embeddingArtifact &&
+    a.embeddingDtype === b.embeddingDtype &&
+    a.embeddingRuntime === b.embeddingRuntime &&
+    a.embeddingProfileId === b.embeddingProfileId &&
     a.inputRecipe === b.inputRecipe &&
     a.normalized === b.normalized &&
     a.inputHash === b.inputHash &&
@@ -355,7 +370,10 @@ function compareEmbeddings(a: ChunkEmbeddingCore, b: ChunkEmbeddingCore): number
   if (a.embeddingModel !== b.embeddingModel) {
     return a.embeddingModel.localeCompare(b.embeddingModel);
   }
-  return a.embeddingModelVersion.localeCompare(b.embeddingModelVersion);
+  if (a.embeddingModelVersion !== b.embeddingModelVersion) {
+    return a.embeddingModelVersion.localeCompare(b.embeddingModelVersion);
+  }
+  return a.embeddingProfileId.localeCompare(b.embeddingProfileId);
 }
 
 /** Freeze a defensive copy of a version core so no external reference can mutate the stored record. */

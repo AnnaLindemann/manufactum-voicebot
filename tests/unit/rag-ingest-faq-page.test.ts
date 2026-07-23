@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { EmbeddingModelRef } from "../../src/rag/document-store.js";
+import {
+  embeddingProfileMetadata,
+  embeddingProfileModelRef,
+} from "../../src/rag/embedding-profile.js";
 import { computeDocumentContentHash } from "../../src/rag/prepare-document.js";
 import {
   InMemoryRagDocumentStore,
@@ -57,10 +61,8 @@ function fixedClock(start = 0): IngestOptions {
   };
 }
 
-const MODEL: EmbeddingModelRef = {
-  embeddingModel: "intfloat/multilingual-e5-large",
-  embeddingModelVersion: "rev-1",
-};
+const MODEL: EmbeddingModelRef = embeddingProfileModelRef();
+const PROFILE_METADATA = embeddingProfileMetadata();
 
 /**
  * Drive a staged version to active the way a later phase would: embed every chunk for MODEL, then
@@ -77,14 +79,10 @@ async function activate(
       documentKey,
       documentVersion: version,
       chunkIndex: chunk.chunkIndex,
-      embeddingModel: MODEL.embeddingModel,
-      embeddingModelVersion: MODEL.embeddingModelVersion,
-      embeddingDim: 3,
-      inputRecipe: "e5:passage:v1",
-      normalized: true,
+      ...PROFILE_METADATA,
       inputHash: `input-${documentKey}-v${String(version)}-${String(chunk.chunkIndex)}`,
       chunkContentHash: chunk.contentHash,
-      embedding: [0.1, 0.2, 0.3],
+      embedding: Array.from({ length: PROFILE_METADATA.embeddingDim }, () => 0.1),
       createdAt: "2026-07-21T00:00:10.000Z",
     })),
   );

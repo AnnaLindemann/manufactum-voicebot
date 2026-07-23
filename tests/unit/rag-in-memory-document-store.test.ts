@@ -6,15 +6,17 @@ import type {
   EmbeddingModelRef,
 } from "../../src/rag/document-store.js";
 import {
+  embeddingProfileMetadata,
+  embeddingProfileModelRef,
+} from "../../src/rag/embedding-profile.js";
+import {
   InMemoryRagDocumentStore,
   RagStorageError,
 } from "../../src/rag/in-memory-document-store.js";
 
 /** The active embedding model used throughout these tests. */
-const MODEL: EmbeddingModelRef = {
-  embeddingModel: "intfloat/multilingual-e5-large",
-  embeddingModelVersion: "rev-1",
-};
+const MODEL: EmbeddingModelRef = embeddingProfileModelRef();
+const PROFILE_METADATA = embeddingProfileMetadata();
 
 /** A minimal well-formed version core for storage-invariant tests. */
 function versionCore(version: number): DocumentVersionCore {
@@ -54,7 +56,7 @@ function chunkCore(version: number, index: number): ChunkCore {
   };
 }
 
-/** One embedding core for the given chunk, using MODEL and a 3-dimensional vector. */
+/** One embedding core for the given chunk, using MODEL and a 384-dimensional vector. */
 function embeddingCore(
   version: number,
   index: number,
@@ -64,17 +66,17 @@ function embeddingCore(
     documentKey: "doc",
     documentVersion: version,
     chunkIndex: index,
-    embeddingModel: MODEL.embeddingModel,
-    embeddingModelVersion: MODEL.embeddingModelVersion,
-    embeddingDim: 3,
-    inputRecipe: "e5:passage:v1",
-    normalized: true,
+    ...PROFILE_METADATA,
     inputHash: `input-hash-v${String(version)}-${String(index)}`,
     chunkContentHash: `hash-${String(index)}`,
-    embedding: [0.1, 0.2, 0.3],
+    embedding: vector384(0.1),
     createdAt: "2026-07-21T00:00:10.000Z",
     ...overrides,
   };
+}
+
+function vector384(value: number): number[] {
+  return Array.from({ length: PROFILE_METADATA.embeddingDim }, () => value);
 }
 
 /** Stage version `n` with `count` chunks, embed all of them for MODEL, and activate it. */
@@ -160,7 +162,7 @@ describe("InMemoryRagDocumentStore — embedding persistence", () => {
     const store = new InMemoryRagDocumentStore();
     await store.stageVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
     await expect(
-      store.saveChunkEmbeddings([embeddingCore(1, 1, { embeddingDim: 4 })]),
+      store.saveChunkEmbeddings([embeddingCore(1, 1, { embeddingDim: 383 })]),
     ).rejects.toThrow(RagStorageError);
   });
 
@@ -180,7 +182,7 @@ describe("InMemoryRagDocumentStore — embedding persistence", () => {
 
     const embeddings = await store.getChunkEmbeddings("doc", 1);
     expect(embeddings).toHaveLength(1);
-    expect(embeddings[0]?.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect(embeddings[0]?.embedding).toHaveLength(384);
     expect(embeddings[0]?.embeddingModel).toBe(MODEL.embeddingModel);
   });
 
@@ -202,10 +204,10 @@ describe("InMemoryRagDocumentStore — embedding persistence", () => {
     await store.stageVersion({ version: versionCore(1), chunks: [chunkCore(1, 1)] });
     await store.saveChunkEmbeddings([embeddingCore(1, 1)]);
     await expect(
-      store.saveChunkEmbeddings([embeddingCore(1, 1, { embedding: [0.9, 0.8, 0.7] })]),
+      store.saveChunkEmbeddings([embeddingCore(1, 1, { embedding: vector384(0.9) })]),
     ).rejects.toThrow(RagStorageError);
     // The original row is preserved unchanged.
-    expect((await store.getChunkEmbeddings("doc", 1))[0]?.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect((await store.getChunkEmbeddings("doc", 1))[0]?.embedding).toHaveLength(384);
   });
 
   it("rejects a conflicting retry: same natural key but a different input hash", async () => {
@@ -224,7 +226,10 @@ describe("InMemoryRagDocumentStore — embedding persistence", () => {
     await store.saveChunkEmbeddings([embeddingCore(1, 1, { embeddingModelVersion: "rev-2" })]);
 
     const embeddings = await store.getChunkEmbeddings("doc", 1);
-    expect(embeddings.map((e) => e.embeddingModelVersion)).toEqual(["rev-1", "rev-2"]);
+    expect(embeddings.map((e) => e.embeddingModelVersion)).toEqual([
+      MODEL.embeddingModelVersion,
+      "rev-2",
+    ]);
   });
 });
 
@@ -247,8 +252,8 @@ describe("InMemoryRagDocumentStore — activation and the readiness gate", () =>
     await store.saveChunkEmbeddings([embeddingCore(1, 1)]);
     await expect(
       store.activateVersion("doc", 1, {
+        ...MODEL,
         embeddingModel: "other/model",
-        embeddingModelVersion: "rev-1",
       }),
     ).rejects.toThrow(RagStorageError);
   });
@@ -336,7 +341,7 @@ describe("InMemoryRagDocumentStore — immutability of stored records", () => {
     await store.saveChunkEmbeddings([embedding]);
 
     embedding.embedding[0] = 9.9;
-    expect((await store.getChunkEmbeddings("doc", 1))[0]?.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect((await store.getChunkEmbeddings("doc", 1))[0]?.embedding).toHaveLength(384);
   });
 
   it("orders chunks by ascending chunkIndex regardless of insertion order", async () => {

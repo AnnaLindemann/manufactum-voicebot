@@ -75,6 +75,25 @@ Consequences:
 - a capability is treated as unsupported until an observation proves otherwise;
 - `api-contracts.md` stays provisional until Phase 1 discovery is complete.
 
+## D-011-RAG — Test embedding runtime: local Transformers.js on Render
+
+Accepted for the RAG embedding test phase.
+
+The embedding model runs locally inside the existing Node.js backend on Render through
+Transformers.js. No external embedding API, Hugging Face Endpoint, API key, or paid provider is used
+for this test phase.
+
+Profile:
+
+- provider: local Transformers.js;
+- model: `Xenova/multilingual-e5-small`;
+- artifact: pinned immutable Hugging Face revision and explicit quantized ONNX artifact;
+- dimension: 384;
+- health endpoint never loads the model;
+- no paid embedding provider for the test phase.
+
+Known limitation: Render cold starts and spin-down can require model re-download or reload.
+
 ## D-012 — Structured error envelope and correlation logging begin with the first API route
 
 Deferred, with a fixed trigger. **Trigger restated in Phase 2.**
