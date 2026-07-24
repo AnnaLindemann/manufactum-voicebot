@@ -9,11 +9,14 @@ import type {
   EmbeddingModelRef,
   NewVersionInput,
   RagDocumentStore,
+  RelevantChunkSearchOptions,
+  RelevantChunkSearchResult,
   StoredChunk,
   StoredChunkEmbedding,
   StoredDocument,
   StoredDocumentVersion,
 } from "./document-store.js";
+import { RagRetrievalError } from "./retrieval-errors.js";
 
 /**
  * In-memory implementation of `RagDocumentStore` (roadmap Phase 10–11, offline ingestion only).
@@ -286,6 +289,52 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
     entry.activeVersion = version;
   }
 
+  async searchRelevantChunks(
+    options: RelevantChunkSearchOptions,
+  ): Promise<RelevantChunkSearchResult[]> {
+    const results: RelevantChunkSearchResult[] = [];
+    for (const [documentKey, entry] of this.documents.entries()) {
+      if (entry.activeVersion === undefined) {
+        continue;
+      }
+      const chunks = entry.chunks.get(entry.activeVersion) ?? [];
+      for (const chunk of chunks) {
+        const embedding = entry.embeddings.find(
+          (candidate) =>
+            candidate.documentVersion === chunk.documentVersion &&
+            candidate.chunkIndex === chunk.chunkIndex &&
+            embeddingMatchesModel(candidate, options.model),
+        );
+        if (embedding === undefined) {
+          continue;
+        }
+        const score = cosineSimilarity(options.queryEmbedding, embedding.embedding);
+        if (!Number.isFinite(score) || score < -1.0001 || score > 1.0001) {
+          throw new RagRetrievalError(
+            "RAG_RETRIEVAL_INVALID_SCORE",
+            `Invalid cosine similarity for ${documentKey} ${chunk.chunkKey}.`,
+            false,
+          );
+        }
+        results.push(
+          Object.freeze({
+            content: chunk.content,
+            score,
+            documentKey,
+            documentVersion: chunk.documentVersion,
+            chunkKey: chunk.chunkKey,
+            sourceUrl: chunk.sourceUrl,
+            title: chunk.title,
+            documentType: chunk.documentType,
+            language: chunk.language,
+          }),
+        );
+      }
+    }
+
+    return results.sort(compareRetrievalResults).slice(0, options.maxChunks);
+  }
+
   /** Count chunks of `version` that have no embedding for the given model (0 means fully covered). */
   private uncoveredChunkCount(
     entry: DocumentEntry,
@@ -330,6 +379,45 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
       .map((core) => Object.freeze({ ...core, isActive }))
       .sort((a, b) => a.chunkIndex - b.chunkIndex);
   }
+}
+
+function embeddingMatchesModel(embedding: ChunkEmbeddingCore, model: EmbeddingModelRef): boolean {
+  return (
+    embedding.embeddingProvider === model.embeddingProvider &&
+    embedding.embeddingModel === model.embeddingModel &&
+    embedding.embeddingModelVersion === model.embeddingModelVersion &&
+    embedding.embeddingArtifact === model.embeddingArtifact &&
+    embedding.embeddingDtype === model.embeddingDtype &&
+    embedding.embeddingRuntime === model.embeddingRuntime &&
+    embedding.embeddingProfileId === model.embeddingProfileId
+  );
+}
+
+function cosineSimilarity(query: readonly number[], passage: readonly number[]): number {
+  if (query.length !== passage.length) {
+    throw new RagRetrievalError(
+      "RAG_RETRIEVAL_INVALID_SCORE",
+      `Cannot compare query dimension ${String(query.length)} with passage dimension ${String(passage.length)}.`,
+      false,
+    );
+  }
+  return query.reduce((sum, value, index) => sum + value * passage[index]!, 0);
+}
+
+function compareRetrievalResults(
+  a: RelevantChunkSearchResult,
+  b: RelevantChunkSearchResult,
+): number {
+  if (a.score !== b.score) {
+    return b.score - a.score;
+  }
+  if (a.documentKey !== b.documentKey) {
+    return a.documentKey.localeCompare(b.documentKey);
+  }
+  if (a.documentVersion !== b.documentVersion) {
+    return a.documentVersion - b.documentVersion;
+  }
+  return a.chunkKey.localeCompare(b.chunkKey);
 }
 
 /** The staged version number (greater than the active version), or `undefined` if none is pending. */

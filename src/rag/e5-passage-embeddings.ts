@@ -25,8 +25,14 @@ export type PassageEmbeddingResult = {
   prefixed: true;
 };
 
+export type QueryEmbeddingResult = PassageEmbeddingResult;
+
 export interface PassageEmbeddingGenerator {
   embedPassage(content: string): Promise<PassageEmbeddingResult>;
+}
+
+export interface QueryEmbeddingGenerator {
+  embedQuery(query: string): Promise<QueryEmbeddingResult>;
 }
 
 type TokenizerInputIds = number[] | number[][] | { tolist: () => unknown[] };
@@ -98,7 +104,9 @@ export type TransformersE5SmallPassageEmbeddingGeneratorOptions = {
   importTransformers?: () => Promise<TransformersModule>;
 };
 
-export class TransformersE5SmallPassageEmbeddingGenerator implements PassageEmbeddingGenerator {
+export class TransformersE5SmallPassageEmbeddingGenerator
+  implements PassageEmbeddingGenerator, QueryEmbeddingGenerator
+{
   private readonly profile: RagEmbeddingProfile;
   private readonly importTransformers: () => Promise<TransformersModule>;
   private inFlightLoad: Promise<LoadedTransformers> | undefined;
@@ -122,8 +130,19 @@ export class TransformersE5SmallPassageEmbeddingGenerator implements PassageEmbe
   }
 
   async embedPassage(content: string): Promise<PassageEmbeddingResult> {
+    return await this.embedWithPrefix(content, this.profile.passagePrefix);
+  }
+
+  async embedQuery(query: string): Promise<QueryEmbeddingResult> {
+    return await this.embedWithPrefix(query, this.profile.queryPrefix);
+  }
+
+  private async embedWithPrefix(
+    content: string,
+    prefix: RagEmbeddingProfile["passagePrefix"] | RagEmbeddingProfile["queryPrefix"],
+  ): Promise<PassageEmbeddingResult> {
     const loaded = await this.load();
-    const tokenized = truncatePassageInput(loaded.tokenizer, content, this.profile);
+    const tokenized = truncateE5Input(loaded.tokenizer, content, prefix, this.profile);
     let tensor: FeatureTensor;
     try {
       tensor = await loaded.extractor(tokenized.input, { pooling: "mean", normalize: true });
@@ -182,7 +201,24 @@ export function truncatePassageInput(
   content: string,
   profile: RagEmbeddingProfile = RAG_EMBEDDING_PROFILE,
 ): { input: string; tokenCount: number } {
-  const prefixed = `${profile.passagePrefix}${content}`;
+  return truncateE5Input(tokenizer, content, profile.passagePrefix, profile);
+}
+
+export function truncateQueryInput(
+  tokenizer: E5Tokenizer,
+  content: string,
+  profile: RagEmbeddingProfile = RAG_EMBEDDING_PROFILE,
+): { input: string; tokenCount: number } {
+  return truncateE5Input(tokenizer, content, profile.queryPrefix, profile);
+}
+
+function truncateE5Input(
+  tokenizer: E5Tokenizer,
+  content: string,
+  prefix: RagEmbeddingProfile["passagePrefix"] | RagEmbeddingProfile["queryPrefix"],
+  profile: RagEmbeddingProfile,
+): { input: string; tokenCount: number } {
+  const prefixed = `${prefix}${content}`;
   let tokenIds: number[];
   try {
     const encoded = tokenizer._call(prefixed, {
@@ -205,10 +241,10 @@ export function truncatePassageInput(
     clean_up_tokenization_spaces: false,
   });
 
-  if (!input.startsWith(profile.passagePrefix)) {
+  if (!input.startsWith(prefix)) {
     throw new RagEmbeddingError(
       "RAG_EMBEDDING_INVALID_OUTPUT",
-      "Tokenized passage input lost its required E5 passage prefix.",
+      "Tokenized E5 input lost its required task prefix.",
       false,
     );
   }

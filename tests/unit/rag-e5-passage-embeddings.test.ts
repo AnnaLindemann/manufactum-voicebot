@@ -3,6 +3,7 @@ import {
   RagEmbeddingError,
   TransformersE5SmallPassageEmbeddingGenerator,
   truncatePassageInput,
+  truncateQueryInput,
   vectorL2Norm,
 } from "../../src/rag/e5-passage-embeddings.js";
 import { RAG_EMBEDDING_PROFILE } from "../../src/rag/embedding-profile.js";
@@ -43,6 +44,7 @@ describe("local E5-small passage embedding adapter", () => {
       runtimeVersion: "2.17.2",
       dimension: 384,
       passagePrefix: "passage: ",
+      queryPrefix: "query: ",
       tokenizerLimit: 512,
     });
   });
@@ -142,6 +144,21 @@ describe("local E5-small passage embedding adapter", () => {
     });
   });
 
+  it("adds the required query prefix before tokenizer-based 512-token truncation", () => {
+    const { tokenizer, calls } = tokenizerStub("query: gekuerzte Frage");
+    const result = truncateQueryInput(tokenizer, "Wie kann ich mich registrieren?");
+
+    expect(result).toEqual({ input: "query: gekuerzte Frage", tokenCount: 3 });
+    expect(calls[0]).toEqual({
+      text: `${RAG_EMBEDDING_PROFILE.queryPrefix}Wie kann ich mich registrieren?`,
+      options: {
+        truncation: true,
+        max_length: RAG_EMBEDDING_PROFILE.tokenizerLimit,
+        return_tensor: false,
+      },
+    });
+  });
+
   it("hashes the actual truncated passage input and requests mean pooled normalized embeddings", async () => {
     const { tokenizer } = tokenizerStub("passage: tatsaechlicher Modellinput");
     const extractorCalls: unknown[] = [];
@@ -174,6 +191,48 @@ describe("local E5-small passage embedding adapter", () => {
     expect(result.embedding).toHaveLength(RAG_EMBEDDING_PROFILE.dimension);
     expect(result.tokenCount).toBe(3);
     expect(result.l2Norm).toBeCloseTo(1, 6);
+  });
+
+  it("hashes the actual truncated query input using the same pinned lazy-loaded model", async () => {
+    const { tokenizer } = tokenizerStub("query: tatsaechlicher Modellinput");
+    const extractorCalls: unknown[] = [];
+    const loaderCalls: unknown[] = [];
+    const generator = new TransformersE5SmallPassageEmbeddingGenerator({
+      importTransformers: () =>
+        Promise.resolve({
+          AutoTokenizer: {
+            from_pretrained: (modelId, options) => {
+              loaderCalls.push({ modelId, options });
+              return Promise.resolve(tokenizer);
+            },
+          },
+          pipeline: (_task, modelId, options) => {
+            loaderCalls.push({ modelId, options });
+            return Promise.resolve((text, extractorOptions) => {
+              extractorCalls.push({ text, options: extractorOptions });
+              return Promise.resolve({
+                dims: [1, RAG_EMBEDDING_PROFILE.dimension],
+                data: Float32Array.from(normalized384()),
+              });
+            });
+          },
+        }),
+    });
+
+    const result = await generator.embedQuery("Wo lege ich ein Konto an?");
+    await generator.embedQuery("Wie melde ich mich an?");
+
+    expect(loaderCalls).toHaveLength(2);
+    expect(loaderCalls[0]).toMatchObject({
+      modelId: RAG_EMBEDDING_PROFILE.modelId,
+      options: { revision: RAG_EMBEDDING_PROFILE.modelRevision },
+    });
+    expect(extractorCalls[0]).toEqual({
+      text: "query: tatsaechlicher Modellinput",
+      options: { pooling: "mean", normalize: true },
+    });
+    expect(result.inputHash).toBe(sha256Hex("query: tatsaechlicher Modellinput"));
+    expect(result.embedding).toHaveLength(RAG_EMBEDDING_PROFILE.dimension);
   });
 
   it("rejects a vector with the wrong dimension or missing L2 normalization", async () => {

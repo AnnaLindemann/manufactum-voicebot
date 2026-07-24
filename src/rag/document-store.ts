@@ -171,6 +171,24 @@ export type EmbeddingModelRef = {
   embeddingProfileId: string;
 };
 
+export type RelevantChunkSearchOptions = {
+  queryEmbedding: number[];
+  model: EmbeddingModelRef;
+  maxChunks: number;
+};
+
+export type RelevantChunkSearchResult = {
+  content: string;
+  score: number;
+  documentKey: string;
+  documentVersion: number;
+  chunkKey: string;
+  sourceUrl: string;
+  title: string;
+  documentType: string;
+  language: string;
+};
+
 /**
  * Persistence contract for versioned RAG documents. Reads return freshly built, immutable views with
  * the derived `isActive` flag; the store never hands back an internal reference a caller could mutate.
@@ -239,4 +257,13 @@ export interface RagDocumentStore {
    * version, chunk, or embedding is ever mutated.
    */
   activateVersion(documentKey: string, version: number, model: EmbeddingModelRef): Promise<void>;
+
+  /**
+   * Search active chunks by cosine similarity against a query embedding. Implementations must search
+   * only chunks whose document version is active, must require a full embedding profile match, and must
+   * return results in deterministic relevance order. Thresholding/no-answer handling is intentionally
+   * kept above the store so the storage contract stays a vector search primitive, not an answer
+   * generator.
+   */
+  searchRelevantChunks(options: RelevantChunkSearchOptions): Promise<RelevantChunkSearchResult[]>;
 }

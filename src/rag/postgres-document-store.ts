@@ -4,12 +4,15 @@ import type {
   EmbeddingModelRef,
   NewVersionInput,
   RagDocumentStore,
+  RelevantChunkSearchOptions,
+  RelevantChunkSearchResult,
   StoredChunk,
   StoredChunkEmbedding,
   StoredDocument,
   StoredDocumentVersion,
 } from "./document-store.js";
 import { RagStorageError } from "./in-memory-document-store.js";
+import { RagRetrievalError } from "./retrieval-errors.js";
 
 /**
  * PostgreSQL implementation of `RagDocumentStore` (`D-004`,
@@ -89,6 +92,18 @@ type EmbeddingRow = {
   chunk_content_hash: string;
   embedding: string;
   created_at: Date;
+};
+
+type RetrievalRow = {
+  content: string;
+  score: number | string;
+  document_key: string;
+  document_version: number;
+  chunk_key: string;
+  source_url: string;
+  title: string;
+  document_type: string;
+  language: string;
 };
 
 /**
@@ -517,6 +532,63 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
       client.release();
     }
   }
+
+  async searchRelevantChunks(
+    options: RelevantChunkSearchOptions,
+  ): Promise<RelevantChunkSearchResult[]> {
+    try {
+      const result = await this.pool.query<RetrievalRow>(
+        `SELECT c.content,
+                1 - (e.embedding <=> $1::vector) AS score,
+                c.document_key,
+                c.document_version,
+                c.chunk_key,
+                c.source_url,
+                c.title,
+                c.document_type,
+                c.language
+           FROM rag_chunk_embeddings e
+           JOIN rag_documents d
+             ON d.document_key = e.document_key
+            AND d.current_version = e.document_version
+           JOIN rag_chunks c
+             ON c.document_key = e.document_key
+            AND c.document_version = e.document_version
+            AND c.chunk_index = e.chunk_index
+          WHERE e.embedding_provider = $2
+            AND e.embedding_model = $3
+            AND e.embedding_model_version = $4
+            AND e.embedding_artifact = $5
+            AND e.embedding_dtype = $6
+            AND e.embedding_runtime = $7
+            AND e.embedding_profile_id = $8
+          ORDER BY score DESC, c.document_key ASC, c.document_version ASC, c.chunk_key ASC
+          LIMIT $9`,
+        [
+          formatVector(options.queryEmbedding),
+          options.model.embeddingProvider,
+          options.model.embeddingModel,
+          options.model.embeddingModelVersion,
+          options.model.embeddingArtifact,
+          options.model.embeddingDtype,
+          options.model.embeddingRuntime,
+          options.model.embeddingProfileId,
+          options.maxChunks,
+        ],
+      );
+      return result.rows.map(mapRetrievalRow);
+    } catch (error) {
+      if (error instanceof RagRetrievalError) {
+        throw error;
+      }
+      throw new RagRetrievalError(
+        "RAG_RETRIEVAL_STORE_FAILED",
+        "RAG retrieval storage query failed.",
+        true,
+        error,
+      );
+    }
+  }
 }
 
 async function insertVersion(client: PoolClient, input: NewVersionInput): Promise<void> {
@@ -642,5 +714,27 @@ function mapEmbedding(row: EmbeddingRow): StoredChunkEmbedding {
     chunkContentHash: row.chunk_content_hash,
     embedding: parseVector(row.embedding),
     createdAt: row.created_at.toISOString(),
+  });
+}
+
+function mapRetrievalRow(row: RetrievalRow): RelevantChunkSearchResult {
+  const score = Number(row.score);
+  if (!Number.isFinite(score) || score < -1.0001 || score > 1.0001) {
+    throw new RagRetrievalError(
+      "RAG_RETRIEVAL_INVALID_SCORE",
+      `RAG retrieval returned an invalid cosine similarity for ${row.document_key} ${row.chunk_key}.`,
+      false,
+    );
+  }
+  return Object.freeze({
+    content: row.content,
+    score,
+    documentKey: row.document_key,
+    documentVersion: row.document_version,
+    chunkKey: row.chunk_key,
+    sourceUrl: row.source_url,
+    title: row.title,
+    documentType: row.document_type,
+    language: row.language,
   });
 }

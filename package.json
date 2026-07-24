@@ -17,6 +17,7 @@
     "migrate": "tsx scripts/migrate.ts",
     "rag:embed-staged": "tsx scripts/embed-staged-faq-chunks.ts",
     "rag:smoke-embedding": "tsx scripts/smoke-rag-embedding-runtime.ts",
+    "rag:smoke-retrieval": "tsx scripts/smoke-rag-retrieval.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

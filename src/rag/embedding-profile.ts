@@ -11,8 +11,10 @@ export const RAG_EMBEDDING_PROFILE = Object.freeze({
   runtimeVersion: "2.17.2",
   dimension: 384,
   passagePrefix: "passage: ",
+  queryPrefix: "query: ",
   tokenizerLimit: 512,
-  inputRecipe: "e5:passage:v1",
+  passageInputRecipe: "e5:passage:v1",
+  queryInputRecipe: "e5:query:v1",
   normalized: true,
 } as const);
 
@@ -27,7 +29,7 @@ export type RagEmbeddingProfileMetadata = {
   embeddingRuntime: `${RagEmbeddingProfile["runtimePackage"]}@${RagEmbeddingProfile["runtimeVersion"]}`;
   embeddingProfileId: RagEmbeddingProfile["id"];
   embeddingDim: RagEmbeddingProfile["dimension"];
-  inputRecipe: RagEmbeddingProfile["inputRecipe"];
+  inputRecipe: RagEmbeddingProfile["passageInputRecipe"];
   normalized: RagEmbeddingProfile["normalized"];
 };
 
@@ -43,7 +45,7 @@ export function embeddingProfileMetadata(
     embeddingRuntime: `${profile.runtimePackage}@${profile.runtimeVersion}`,
     embeddingProfileId: profile.id,
     embeddingDim: profile.dimension,
-    inputRecipe: profile.inputRecipe,
+    inputRecipe: profile.passageInputRecipe,
     normalized: profile.normalized,
   };
 }
