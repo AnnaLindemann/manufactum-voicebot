@@ -1,0 +1,2298 @@
+{
+  "experiment": {
+    "id": "faq-question-reranker",
+    "description": "Evaluation-only reranker: preserve baseline Top-3 candidates, embed the original user query with the existing E5 query recipe, embed only each candidate's canonical FAQ question with the existing E5 passage recipe, and choose the highest normalized cosine similarity with baseline-rank tie breaks.",
+    "productionBehaviorChanged": false,
+    "productionThresholdChanged": false,
+    "primaryRetrievalChanged": false,
+    "additionalChunksRetrieved": false,
+    "brandTokenNormalizationUsed": false,
+    "combinesRetrievalAndQuestionScores": false,
+    "usesLabelsExpectedIdsOrCategoriesForRanking": false,
+    "outputPath": "docs/evaluation/rag-faq-question-reranker-experiment-results.json"
+  },
+  "dataset": {
+    "path": "tests/fixtures/rag/retrieval-evaluation-dataset.json",
+    "sha256": "458e6958997a7838693c1ac96c102deee0c991fc4d2bd8a9abb3875b96461197",
+    "composition": {
+      "exact": 12,
+      "paraphrase": 24,
+      "hard_negative": 8,
+      "irrelevant": 8
+    },
+    "immutableDuringEvaluation": true,
+    "loadedAndValidatedBeforeModelScoring": true,
+    "limitation": "Same frozen dataset is used; no independent validation dataset exists."
+  },
+  "embeddingProfile": {
+    "id": "local-transformers-js:xenova-multilingual-e5-small:ae61bf0193ce3851dc8a45147e459b04ed783d8a:onnx-model-quantized:int8:v1",
+    "modelId": "Xenova/multilingual-e5-small",
+    "modelRevision": "ae61bf0193ce3851dc8a45147e459b04ed783d8a",
+    "artifact": "onnx/model_quantized.onnx",
+    "dimension": 384,
+    "queryInputRecipe": "e5:query:v1",
+    "questionInputRecipe": "e5:passage:v1",
+    "normalizedCosineSimilarity": true
+  },
+  "maxChunks": 3,
+  "provisionalThreshold": 0.8,
+  "wrongTop1AnswerableQueryIds": [
+    "para-003-a",
+    "para-006-a",
+    "para-009-b",
+    "para-010-b",
+    "para-012-b"
+  ],
+  "recoverableWrongTop1QueryIds": ["para-009-b", "para-010-b"],
+  "unrecoverableWrongTop1QueryIds": ["para-003-a", "para-006-a", "para-012-b"],
+  "changedAnswerableRankings": [
+    {
+      "id": "para-003-a",
+      "category": "paraphrase",
+      "query": "Wo kann ich meine Manufactum Kundennummer nachsehen?",
+      "expectedResult": "mein-konto:v1:chunk-003",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.883672,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.883096,
+        "top1FaqQuestionScore": 0.853079,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.883096,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.853079
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.883672,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.852907
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.865988,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.851696
+        }
+      ]
+    },
+    {
+      "id": "para-006-a",
+      "category": "paraphrase",
+      "query": "Was mache ich, wenn ich mein Manufactum Passwort vergessen habe?",
+      "expectedResult": "mein-konto:v1:chunk-006",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.88455,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.862152,
+        "top1FaqQuestionScore": 0.861078,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.862152,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.861078
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.88455,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.859037
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.863152,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.851527
+        }
+      ]
+    },
+    {
+      "id": "para-007-a",
+      "category": "paraphrase",
+      "query": "Wie speichere ich Artikel auf meiner Merkliste?",
+      "expectedResult": "mein-konto:v1:chunk-007",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.901092,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.880056,
+        "top1FaqQuestionScore": 0.866078,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.880056,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.866078
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.901092,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.849023
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.874785,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.828566
+        }
+      ]
+    },
+    {
+      "id": "para-007-b",
+      "category": "paraphrase",
+      "query": "Wofür ist die Merkliste gedacht und wie verwende ich sie?",
+      "expectedResult": "mein-konto:v1:chunk-007",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.880123,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.849745,
+        "top1FaqQuestionScore": 0.851152,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 3,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.849745,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.851152
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.880123,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.842081
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.852077,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.820473
+        }
+      ]
+    },
+    {
+      "id": "para-009-b",
+      "category": "paraphrase",
+      "query": "Wie verwende ich eine Wunschliste, die eine andere Person mit mir geteilt hat?",
+      "expectedResult": "mein-konto:v1:chunk-009",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.905599,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.889582,
+        "top1FaqQuestionScore": 0.892626,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.889582,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.892626
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.905599,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.858832
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.820089,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.807791
+        }
+      ]
+    },
+    {
+      "id": "para-010-b",
+      "category": "paraphrase",
+      "query": "Wie bestelle ich die Newsletter-E-Mails von Manufactum?",
+      "expectedResult": "mein-konto:v1:chunk-010",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.900095,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.893129,
+        "top1FaqQuestionScore": 0.895548,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.893129,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.895548
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.900095,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.89176
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.862845,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.854538
+        }
+      ]
+    },
+    {
+      "id": "para-012-b",
+      "category": "paraphrase",
+      "query": "Kann ich mein Manufactum Konto löschen lassen?",
+      "expectedResult": "mein-konto:v1:chunk-012",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.88185,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.881697,
+        "top1FaqQuestionScore": 0.862074,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.881697,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.862074
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.88185,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.853362
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.881225,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.853155
+        }
+      ]
+    }
+  ],
+  "correctedCases": ["para-009-b", "para-010-b"],
+  "regressedCases": ["para-007-a", "para-007-b"],
+  "wrongToDifferentWrongChanges": ["para-003-a", "para-006-a", "para-012-b"],
+  "metrics": {
+    "baseline": {
+      "top1Accuracy": 0.861111,
+      "recallAt3": 0.916667,
+      "mrr": 0.888889
+    },
+    "candidate": {
+      "top1Accuracy": 0.861111,
+      "recallAt3": 0.916667,
+      "mrr": 0.888889
+    },
+    "recallAt3Unchanged": true
+  },
+  "answerabilityPreservedByConstruction": {
+    "retrievalThresholdUsedForDecisions": 0.8,
+    "baselineDecisionSource": "original baseline retrieval Top-1 score",
+    "candidateDecisionSource": "original baseline retrieval Top-1 score",
+    "changedAcceptRejectDecisions": [],
+    "baseline": {
+      "threshold": 0.8,
+      "truePositive": 36,
+      "falseNegative": 0,
+      "falsePositive": 9,
+      "trueNegative": 7,
+      "hardNegativeFalsePositive": 8,
+      "irrelevantFalsePositive": 1,
+      "total": 52,
+      "precision": 0.8,
+      "recall": 1,
+      "f1": 0.888889,
+      "specificity": 0.4375,
+      "falsePositiveRate": 0.5625,
+      "accuracy": 0.826923
+    },
+    "candidate": {
+      "threshold": 0.8,
+      "truePositive": 36,
+      "falseNegative": 0,
+      "falsePositive": 9,
+      "trueNegative": 7,
+      "hardNegativeFalsePositive": 8,
+      "irrelevantFalsePositive": 1,
+      "total": 52,
+      "precision": 0.8,
+      "recall": 1,
+      "f1": 0.888889,
+      "specificity": 0.4375,
+      "falsePositiveRate": 0.5625,
+      "accuracy": 0.826923
+    },
+    "unchanged": true
+  },
+  "endToEndDecisionsPreservedByConstruction": {
+    "baseline": {
+      "threshold": 0.8,
+      "correctAnswer": 31,
+      "wrongChunkAcceptedForAnswerable": 5,
+      "answerableRejected": 0,
+      "unanswerableIncorrectlyAccepted": 9,
+      "unanswerableCorrectlyRejected": 7,
+      "total": 52,
+      "exactCorrectAnswer": 12,
+      "paraphraseCorrectAnswer": 19
+    },
+    "candidateAcceptRejectOnly": {
+      "threshold": 0.8,
+      "correctAnswer": 31,
+      "wrongChunkAcceptedForAnswerable": 5,
+      "answerableRejected": 0,
+      "unanswerableIncorrectlyAccepted": 9,
+      "unanswerableCorrectlyRejected": 7,
+      "total": 52,
+      "exactCorrectAnswer": 12,
+      "paraphraseCorrectAnswer": 19
+    },
+    "changedAcceptRejectDecisions": [],
+    "note": "Ranking changes are measured separately; accept/reject decisions remain baseline decisions."
+  },
+  "decisionRule": {
+    "decision": "reject",
+    "passes": false,
+    "correctsAllRecoverableWrongTop1": true,
+    "zeroRegressionsAmongBaselineCorrectTop1": false,
+    "acceptRejectDecisionsUnchanged": true,
+    "recallAt3Unchanged": true,
+    "deterministic": true,
+    "correctedRecoverableQueryIds": ["para-009-b", "para-010-b"],
+    "recoverableWrongTop1QueryIds": ["para-009-b", "para-010-b"],
+    "regressedQueryIds": ["para-007-a", "para-007-b"],
+    "wrongToDifferentWrongQueryIds": ["para-003-a", "para-006-a", "para-012-b"],
+    "rejectionReason": "Candidate fails the fixed decision rule if any recoverable wrong-Top-1 case remains uncorrected, any baseline-correct Top-1 answerable query regresses, accept/reject changes, or Recall@3 changes."
+  },
+  "deterministic": true,
+  "perAnswerableQuery": [
+    {
+      "id": "exact-001",
+      "category": "exact",
+      "query": "Wie kann ich mich bei Manufactum registrieren?",
+      "expectedResult": "mein-konto:v1:chunk-001",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.936281,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.936281,
+        "top1FaqQuestionScore": 0.917201,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.936281,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.917201
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.905378,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.874057
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.885109,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.87311
+        }
+      ]
+    },
+    {
+      "id": "exact-002",
+      "category": "exact",
+      "query": "Welche Vorteile bietet mir ein Konto?",
+      "expectedResult": "mein-konto:v1:chunk-002",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.930097,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.930097,
+        "top1FaqQuestionScore": 0.933626,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-002",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.930097,
+          "canonicalFaqQuestion": "Welche Vorteile bietet mir ein Konto?",
+          "faqQuestionScore": 0.933626
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.828603,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.797579
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.831382,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.794635
+        }
+      ]
+    },
+    {
+      "id": "exact-003",
+      "category": "exact",
+      "query": "Wo finde ich meine Kundennummer?",
+      "expectedResult": "mein-konto:v1:chunk-003",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-003",
+        "top1RetrievalScore": 0.935719,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-003",
+        "top1RetrievalScore": 0.935719,
+        "top1FaqQuestionScore": 0.939582,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-003",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.935719,
+          "canonicalFaqQuestion": "Wo finde ich meine Kundennummer?",
+          "faqQuestionScore": 0.939582
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.86213,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.860149
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.836959,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.831727
+        }
+      ]
+    },
+    {
+      "id": "exact-004",
+      "category": "exact",
+      "query": "Wie kann ich meine E-Mail-Adresse ändern?",
+      "expectedResult": "mein-konto:v1:chunk-004",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.933136,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.933136,
+        "top1FaqQuestionScore": 0.933934,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-004",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.933136,
+          "canonicalFaqQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+          "faqQuestionScore": 0.933934
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.840192,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.844497
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.857078,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.811032
+        }
+      ]
+    },
+    {
+      "id": "exact-005",
+      "category": "exact",
+      "query": "Ich möchte mein Passwort ändern, was kann ich tun?",
+      "expectedResult": "mein-konto:v1:chunk-005",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.927012,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.927012,
+        "top1FaqQuestionScore": 0.940319,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.927012,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.940319
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.900767,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.909558
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-004",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.85728,
+          "canonicalFaqQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+          "faqQuestionScore": 0.868616
+        }
+      ]
+    },
+    {
+      "id": "exact-006",
+      "category": "exact",
+      "query": "Ich habe mein Passwort vergessen, was kann ich tun?",
+      "expectedResult": "mein-konto:v1:chunk-006",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-006",
+        "top1RetrievalScore": 0.919936,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-006",
+        "top1RetrievalScore": 0.919936,
+        "top1FaqQuestionScore": 0.93115,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.919936,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.93115
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.882542,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.900203
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.825836,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.831611
+        }
+      ]
+    },
+    {
+      "id": "exact-007",
+      "category": "exact",
+      "query": "Wie nutze ich die Merkliste?",
+      "expectedResult": "mein-konto:v1:chunk-007",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.905623,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.905623,
+        "top1FaqQuestionScore": 0.940385,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.905623,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.940385
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.855821,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.883535
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.863258,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.864913
+        }
+      ]
+    },
+    {
+      "id": "exact-008",
+      "category": "exact",
+      "query": "Kann ich meine Merkliste mit anderen teilen?",
+      "expectedResult": "mein-konto:v1:chunk-008",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.924544,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.924544,
+        "top1FaqQuestionScore": 0.937251,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.924544,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.937251
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.882493,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.8476
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.860211,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.846217
+        }
+      ]
+    },
+    {
+      "id": "exact-009",
+      "category": "exact",
+      "query": "Wie funktioniert die mit mir geteilte Wunschliste?",
+      "expectedResult": "mein-konto:v1:chunk-009",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.912077,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.912077,
+        "top1FaqQuestionScore": 0.934139,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.912077,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.934139
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.899114,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.858836
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.840354,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.840008
+        }
+      ]
+    },
+    {
+      "id": "exact-010",
+      "category": "exact",
+      "query": "Wie kann ich den Manufactum Newsletter abonnieren?",
+      "expectedResult": "mein-konto:v1:chunk-010",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.934816,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.934816,
+        "top1FaqQuestionScore": 0.911233,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.934816,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.911233
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.924981,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.901851
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.875331,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.862997
+        }
+      ]
+    },
+    {
+      "id": "exact-011",
+      "category": "exact",
+      "query": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+      "expectedResult": "mein-konto:v1:chunk-011",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.94335,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.94335,
+        "top1FaqQuestionScore": 0.921106,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.94335,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.921106
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.916101,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.898445
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.867064,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.861214
+        }
+      ]
+    },
+    {
+      "id": "exact-012",
+      "category": "exact",
+      "query": "Wie kann ich mein Kundenkonto löschen?",
+      "expectedResult": "mein-konto:v1:chunk-012",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-012",
+        "top1RetrievalScore": 0.922879,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-012",
+        "top1RetrievalScore": 0.922879,
+        "top1FaqQuestionScore": 0.91971,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.922879,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.91971
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-003",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.841883,
+          "canonicalFaqQuestion": "Wo finde ich meine Kundennummer?",
+          "faqQuestionScore": 0.839808
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.835097,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.81105
+        }
+      ]
+    },
+    {
+      "id": "para-001-a",
+      "category": "paraphrase",
+      "query": "Wo erstelle ich ein neues Manufactum Kundenkonto?",
+      "expectedResult": "mein-konto:v1:chunk-001",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.908729,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.908729,
+        "top1FaqQuestionScore": 0.865912,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.908729,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.865912
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.890682,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.858992
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.877597,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.857278
+        }
+      ]
+    },
+    {
+      "id": "para-001-b",
+      "category": "paraphrase",
+      "query": "Wie lege ich mir bei Manufactum ein Benutzerkonto an?",
+      "expectedResult": "mein-konto:v1:chunk-001",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.912253,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.912253,
+        "top1FaqQuestionScore": 0.881985,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.912253,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.881985
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.904283,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.874715
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.879231,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.868169
+        }
+      ]
+    },
+    {
+      "id": "para-002-a",
+      "category": "paraphrase",
+      "query": "Was bringt mir ein persönliches Kundenkonto?",
+      "expectedResult": "mein-konto:v1:chunk-002",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.871122,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.871122,
+        "top1FaqQuestionScore": 0.872987,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-002",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.871122,
+          "canonicalFaqQuestion": "Welche Vorteile bietet mir ein Konto?",
+          "faqQuestionScore": 0.872987
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-003",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.86489,
+          "canonicalFaqQuestion": "Wo finde ich meine Kundennummer?",
+          "faqQuestionScore": 0.846156
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.857665,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.818587
+        }
+      ]
+    },
+    {
+      "id": "para-002-b",
+      "category": "paraphrase",
+      "query": "Welche Funktionen habe ich, wenn ich ein Konto nutze?",
+      "expectedResult": "mein-konto:v1:chunk-002",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.852112,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-002",
+        "top1RetrievalScore": 0.852112,
+        "top1FaqQuestionScore": 0.84801,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-002",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.852112,
+          "canonicalFaqQuestion": "Welche Vorteile bietet mir ein Konto?",
+          "faqQuestionScore": 0.84801
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.82942,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.822883
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.82355,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.801015
+        }
+      ]
+    },
+    {
+      "id": "para-003-a",
+      "category": "paraphrase",
+      "query": "Wo kann ich meine Manufactum Kundennummer nachsehen?",
+      "expectedResult": "mein-konto:v1:chunk-003",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.883672,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.883096,
+        "top1FaqQuestionScore": 0.853079,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.883096,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.853079
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.883672,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.852907
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.865988,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.851696
+        }
+      ]
+    },
+    {
+      "id": "para-003-b",
+      "category": "paraphrase",
+      "query": "An welcher Stelle steht meine Kundennummer?",
+      "expectedResult": "mein-konto:v1:chunk-003",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-003",
+        "top1RetrievalScore": 0.913945,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-003",
+        "top1RetrievalScore": 0.913945,
+        "top1FaqQuestionScore": 0.914185,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-003",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.913945,
+          "canonicalFaqQuestion": "Wo finde ich meine Kundennummer?",
+          "faqQuestionScore": 0.914185
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.848205,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.847841
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.834239,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.824892
+        }
+      ]
+    },
+    {
+      "id": "para-004-a",
+      "category": "paraphrase",
+      "query": "Wie aktualisiere ich die E-Mail-Adresse in meinem Konto?",
+      "expectedResult": "mein-konto:v1:chunk-004",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.905686,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.905686,
+        "top1FaqQuestionScore": 0.88912,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-004",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.905686,
+          "canonicalFaqQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+          "faqQuestionScore": 0.88912
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-002",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.855595,
+          "canonicalFaqQuestion": "Welche Vorteile bietet mir ein Konto?",
+          "faqQuestionScore": 0.832631
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.85603,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.797263
+        }
+      ]
+    },
+    {
+      "id": "para-004-b",
+      "category": "paraphrase",
+      "query": "Kann ich meine hinterlegte Mailadresse selbst ändern?",
+      "expectedResult": "mein-konto:v1:chunk-004",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.876868,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-004",
+        "top1RetrievalScore": 0.876868,
+        "top1FaqQuestionScore": 0.870355,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-004",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.876868,
+          "canonicalFaqQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+          "faqQuestionScore": 0.870355
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.839518,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.830641
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.834029,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.816001
+        }
+      ]
+    },
+    {
+      "id": "para-005-a",
+      "category": "paraphrase",
+      "query": "Wie ändere ich mein aktuelles Passwort im Kundenkonto?",
+      "expectedResult": "mein-konto:v1:chunk-005",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.874229,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.874229,
+        "top1FaqQuestionScore": 0.861108,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.874229,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.861108
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.858324,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.838955
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.852611,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.80573
+        }
+      ]
+    },
+    {
+      "id": "para-005-b",
+      "category": "paraphrase",
+      "query": "Ich kenne mein Passwort noch, möchte es aber ersetzen.",
+      "expectedResult": "mein-konto:v1:chunk-005",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.865049,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-005",
+        "top1RetrievalScore": 0.865049,
+        "top1FaqQuestionScore": 0.902177,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.865049,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.902177
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.863882,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.896595
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.82331,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.845692
+        }
+      ]
+    },
+    {
+      "id": "para-006-a",
+      "category": "paraphrase",
+      "query": "Was mache ich, wenn ich mein Manufactum Passwort vergessen habe?",
+      "expectedResult": "mein-konto:v1:chunk-006",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.88455,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.862152,
+        "top1FaqQuestionScore": 0.861078,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.862152,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.861078
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.88455,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.859037
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.863152,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.851527
+        }
+      ]
+    },
+    {
+      "id": "para-006-b",
+      "category": "paraphrase",
+      "query": "Wie bekomme ich wieder Zugriff, wenn mir mein Passwort nicht mehr einfällt?",
+      "expectedResult": "mein-konto:v1:chunk-006",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-006",
+        "top1RetrievalScore": 0.872834,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-006",
+        "top1RetrievalScore": 0.872834,
+        "top1FaqQuestionScore": 0.883969,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.872834,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.883969
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-005",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.856451,
+          "canonicalFaqQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+          "faqQuestionScore": 0.868758
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.822209,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.813318
+        }
+      ]
+    },
+    {
+      "id": "para-007-a",
+      "category": "paraphrase",
+      "query": "Wie speichere ich Artikel auf meiner Merkliste?",
+      "expectedResult": "mein-konto:v1:chunk-007",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.901092,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.880056,
+        "top1FaqQuestionScore": 0.866078,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.880056,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.866078
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.901092,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.849023
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.874785,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.828566
+        }
+      ]
+    },
+    {
+      "id": "para-007-b",
+      "category": "paraphrase",
+      "query": "Wofür ist die Merkliste gedacht und wie verwende ich sie?",
+      "expectedResult": "mein-konto:v1:chunk-007",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-007",
+        "top1RetrievalScore": 0.880123,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.849745,
+        "top1FaqQuestionScore": 0.851152,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 3,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.849745,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.851152
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.880123,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.842081
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.852077,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.820473
+        }
+      ]
+    },
+    {
+      "id": "para-008-a",
+      "category": "paraphrase",
+      "query": "Kann ich meine gespeicherte Merkliste an jemand anderen senden?",
+      "expectedResult": "mein-konto:v1:chunk-008",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.889707,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.889707,
+        "top1FaqQuestionScore": 0.902184,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.889707,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.902184
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.853089,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.826796
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.856039,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.826398
+        }
+      ]
+    },
+    {
+      "id": "para-008-b",
+      "category": "paraphrase",
+      "query": "Wie teile ich meine Merkliste mit Freunden oder Familie?",
+      "expectedResult": "mein-konto:v1:chunk-008",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.88187,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.88187,
+        "top1FaqQuestionScore": 0.891199,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.88187,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.891199
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.854168,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.850176
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.869788,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.846907
+        }
+      ]
+    },
+    {
+      "id": "para-009-a",
+      "category": "paraphrase",
+      "query": "Was passiert, wenn mir jemand eine Wunschliste freigibt?",
+      "expectedResult": "mein-konto:v1:chunk-009",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.868263,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.868263,
+        "top1FaqQuestionScore": 0.847244,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.868263,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.847244
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.867104,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.808052
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.817676,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.792778
+        }
+      ]
+    },
+    {
+      "id": "para-009-b",
+      "category": "paraphrase",
+      "query": "Wie verwende ich eine Wunschliste, die eine andere Person mit mir geteilt hat?",
+      "expectedResult": "mein-konto:v1:chunk-009",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-008",
+        "top1RetrievalScore": 0.905599,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-009",
+        "top1RetrievalScore": 0.889582,
+        "top1FaqQuestionScore": 0.892626,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-009",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.889582,
+          "canonicalFaqQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+          "faqQuestionScore": 0.892626
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-008",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.905599,
+          "canonicalFaqQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+          "faqQuestionScore": 0.858832
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-007",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.820089,
+          "canonicalFaqQuestion": "Wie nutze ich die Merkliste?",
+          "faqQuestionScore": 0.807791
+        }
+      ]
+    },
+    {
+      "id": "para-010-a",
+      "category": "paraphrase",
+      "query": "Wo melde ich mich für den Manufactum Newsletter an?",
+      "expectedResult": "mein-konto:v1:chunk-010",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.915334,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.915334,
+        "top1FaqQuestionScore": 0.921402,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.915334,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.921402
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.913558,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.919203
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.877729,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.891637
+        }
+      ]
+    },
+    {
+      "id": "para-010-b",
+      "category": "paraphrase",
+      "query": "Wie bestelle ich die Newsletter-E-Mails von Manufactum?",
+      "expectedResult": "mein-konto:v1:chunk-010",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.900095,
+        "top1Correct": false,
+        "expectedRank": 2,
+        "reciprocalRank": 0.5,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-010",
+        "top1RetrievalScore": 0.893129,
+        "top1FaqQuestionScore": 0.895548,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.893129,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.895548
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.900095,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.89176
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.862845,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.854538
+        }
+      ]
+    },
+    {
+      "id": "para-011-a",
+      "category": "paraphrase",
+      "query": "Wie kann ich den Manufactum Newsletter wieder abbestellen?",
+      "expectedResult": "mein-konto:v1:chunk-011",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.926939,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.926939,
+        "top1FaqQuestionScore": 0.89502,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.926939,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.89502
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.899,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.88971
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.850793,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.850675
+        }
+      ]
+    },
+    {
+      "id": "para-011-b",
+      "category": "paraphrase",
+      "query": "Ich möchte keine Newsletter mehr bekommen, was muss ich tun?",
+      "expectedResult": "mein-konto:v1:chunk-011",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.866043,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.866043,
+        "top1FaqQuestionScore": 0.864037,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.866043,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.864037
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.850355,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.863242
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-006",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.841715,
+          "canonicalFaqQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "faqQuestionScore": 0.848613
+        }
+      ]
+    },
+    {
+      "id": "para-012-a",
+      "category": "paraphrase",
+      "query": "Wie entferne ich mein Kundenkonto dauerhaft?",
+      "expectedResult": "mein-konto:v1:chunk-012",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-012",
+        "top1RetrievalScore": 0.857676,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-012",
+        "top1RetrievalScore": 0.857676,
+        "top1FaqQuestionScore": 0.884044,
+        "top1Correct": true,
+        "expectedRank": 1,
+        "reciprocalRank": 1,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": false,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-012",
+          "baselineRank": 1,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.857676,
+          "canonicalFaqQuestion": "Wie kann ich mein Kundenkonto löschen?",
+          "faqQuestionScore": 0.884044
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-002",
+          "baselineRank": 2,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.849327,
+          "canonicalFaqQuestion": "Welche Vorteile bietet mir ein Konto?",
+          "faqQuestionScore": 0.856432
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.836652,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.824097
+        }
+      ]
+    },
+    {
+      "id": "para-012-b",
+      "category": "paraphrase",
+      "query": "Kann ich mein Manufactum Konto löschen lassen?",
+      "expectedResult": "mein-konto:v1:chunk-012",
+      "baseline": {
+        "top1ChunkKey": "mein-konto:v1:chunk-001",
+        "top1RetrievalScore": 0.88185,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080": true
+      },
+      "candidate": {
+        "top1ChunkKey": "mein-konto:v1:chunk-011",
+        "top1RetrievalScore": 0.881697,
+        "top1FaqQuestionScore": 0.862074,
+        "top1Correct": false,
+        "expectedRank": null,
+        "reciprocalRank": 0,
+        "acceptedAt080PreservedFromBaseline": true
+      },
+      "rankingChanged": true,
+      "top3Candidates": [
+        {
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "baselineRank": 2,
+          "candidateRank": 1,
+          "originalRetrievalScore": 0.881697,
+          "canonicalFaqQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "faqQuestionScore": 0.862074
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "baselineRank": 1,
+          "candidateRank": 2,
+          "originalRetrievalScore": 0.88185,
+          "canonicalFaqQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "faqQuestionScore": 0.853362
+        },
+        {
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "baselineRank": 3,
+          "candidateRank": 3,
+          "originalRetrievalScore": 0.881225,
+          "canonicalFaqQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "faqQuestionScore": 0.853155
+        }
+      ]
+    }
+  ]
+}

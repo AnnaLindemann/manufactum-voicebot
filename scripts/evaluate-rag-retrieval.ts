@@ -30,6 +30,7 @@ type QueryResult = EvaluationQuery & {
   top3Correct: boolean;
   reciprocalRank: number;
   marginTop1MinusTop2: number | null;
+  topCandidates: readonly TopCandidate[];
 };
 
 type ExperimentQueryResult = QueryResult & {
@@ -47,6 +48,32 @@ type QuestionGateResult = QueryResult & {
 
 type QuestionGateThresholdSummary = ReturnType<typeof questionGateAtThreshold>;
 
+type TopCandidate = {
+  baselineRank: 1 | 2 | 3;
+  chunkKey: string;
+  content: string;
+  retrievalScore: number;
+};
+
+type RerankedCandidate = TopCandidate & {
+  canonicalFaqQuestion: string;
+  faqQuestionScore: number;
+  candidateRank: 1 | 2 | 3;
+};
+
+type FaqQuestionRerankerResult = QueryResult & {
+  baselineAcceptedAt080: boolean;
+  candidateTop1Content: string | null;
+  candidateTop1ChunkKey: string | null;
+  candidateTop1RetrievalScore: number | null;
+  candidateTop1FaqQuestionScore: number | null;
+  candidateExpectedRank: 1 | 2 | 3 | null;
+  candidateTop1Correct: boolean;
+  candidateReciprocalRank: number;
+  candidateTopCandidates: readonly RerankedCandidate[];
+  rankingChanged: boolean;
+};
+
 type QueryInputRecipe = {
   id: QueryInputRecipeId;
   description: string;
@@ -56,7 +83,8 @@ type QueryInputRecipe = {
 type CliOptions =
   | { mode: "baseline"; outputPath: string | undefined }
   | { mode: "brand-token-normalization-experiment"; outputPath: string }
-  | { mode: "faq-question-gate-experiment"; outputPath: string };
+  | { mode: "faq-question-gate-experiment"; outputPath: string }
+  | { mode: "faq-question-reranker-experiment"; outputPath: string };
 
 const DATASET_PATH = "tests/fixtures/rag/retrieval-evaluation-dataset.json";
 const DEFAULT_OUTPUT_PATH = "docs/evaluation/rag-retrieval-evaluation-results.json";
@@ -64,6 +92,8 @@ const BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH =
   "docs/evaluation/rag-brand-token-normalization-experiment-results.json";
 const FAQ_QUESTION_GATE_EXPERIMENT_OUTPUT_PATH =
   "docs/evaluation/rag-faq-question-gate-experiment-results.json";
+const FAQ_QUESTION_RERANKER_EXPERIMENT_OUTPUT_PATH =
+  "docs/evaluation/rag-faq-question-reranker-experiment-results.json";
 const MAX_CHUNKS = 3;
 const PROVISIONAL_THRESHOLD = 0.8;
 const COMPARISON_THRESHOLDS = [0.8, 0.85] as const;
@@ -197,6 +227,14 @@ async function buildReportForMode(input: {
       ),
     );
   }
+  if (input.cliOptions.mode === "faq-question-reranker-experiment") {
+    return await faqQuestionRerankerExperimentReport(
+      input.dataset,
+      input.datasetSha256,
+      input.baselineResults.map(stripRecipeResult),
+      input.generator,
+    );
+  }
   return await faqQuestionGateExperimentReport(
     input.dataset,
     input.datasetSha256,
@@ -278,6 +316,7 @@ function stripRecipeResult(result: ExperimentQueryResult): QueryResult {
     top3Correct: result.top3Correct,
     reciprocalRank: result.reciprocalRank,
     marginTop1MinusTop2: result.marginTop1MinusTop2,
+    topCandidates: result.topCandidates,
   };
 }
 
@@ -424,6 +463,265 @@ function extractCanonicalFaqQuestion(content: string): string {
     throw new Error("Top-1 chunk content did not contain a canonical `Frage:` section.");
   }
   return match[1].trim();
+}
+
+async function faqQuestionRerankerExperimentReport(
+  dataset: readonly EvaluationQuery[],
+  datasetSha256: string,
+  baselineResults: readonly QueryResult[],
+  generator: TransformersE5SmallPassageEmbeddingGenerator,
+) {
+  const candidateResults = await faqQuestionRerankBaselineTop3(baselineResults, generator);
+  const wrongTop1Answerable = baselineWrongTop1Answerable(baselineResults);
+  const recoverable = wrongTop1Answerable.filter((result) => result.expectedRank !== null);
+  const decisionRuleResult = faqQuestionRerankerDecisionRule(
+    baselineResults,
+    candidateResults,
+    recoverable.map((result) => result.id),
+  );
+  return {
+    experiment: {
+      id: "faq-question-reranker",
+      description:
+        "Evaluation-only reranker: preserve baseline Top-3 candidates, embed the original user query with the existing E5 query recipe, embed only each candidate's canonical FAQ question with the existing E5 passage recipe, and choose the highest normalized cosine similarity with baseline-rank tie breaks.",
+      productionBehaviorChanged: false,
+      productionThresholdChanged: false,
+      primaryRetrievalChanged: false,
+      additionalChunksRetrieved: false,
+      brandTokenNormalizationUsed: false,
+      combinesRetrievalAndQuestionScores: false,
+      usesLabelsExpectedIdsOrCategoriesForRanking: false,
+      outputPath: FAQ_QUESTION_RERANKER_EXPERIMENT_OUTPUT_PATH,
+    },
+    dataset: {
+      path: DATASET_PATH,
+      sha256: datasetSha256,
+      composition: summarizeDataset(dataset),
+      immutableDuringEvaluation: true,
+      loadedAndValidatedBeforeModelScoring: true,
+      limitation: "Same frozen dataset is used; no independent validation dataset exists.",
+    },
+    embeddingProfile: {
+      id: RAG_EMBEDDING_PROFILE.id,
+      modelId: RAG_EMBEDDING_PROFILE.modelId,
+      modelRevision: RAG_EMBEDDING_PROFILE.modelRevision,
+      artifact: RAG_EMBEDDING_PROFILE.artifact,
+      dimension: RAG_EMBEDDING_PROFILE.dimension,
+      queryInputRecipe: RAG_EMBEDDING_PROFILE.queryInputRecipe,
+      questionInputRecipe: RAG_EMBEDDING_PROFILE.passageInputRecipe,
+      normalizedCosineSimilarity: true,
+    },
+    maxChunks: MAX_CHUNKS,
+    provisionalThreshold: PROVISIONAL_THRESHOLD,
+    wrongTop1AnswerableQueryIds: wrongTop1Answerable.map((result) => result.id),
+    recoverableWrongTop1QueryIds: recoverable.map((result) => result.id),
+    unrecoverableWrongTop1QueryIds: wrongTop1Answerable
+      .filter((result) => result.expectedRank === null)
+      .map((result) => result.id),
+    changedAnswerableRankings: changedAnswerableRankings(candidateResults),
+    correctedCases: correctedRerankerCases(candidateResults),
+    regressedCases: regressedRerankerCases(candidateResults),
+    wrongToDifferentWrongChanges: wrongToDifferentWrongChanges(candidateResults),
+    metrics: {
+      baseline: faqRerankerBaselineMetrics(baselineResults),
+      candidate: faqRerankerCandidateMetrics(candidateResults),
+      recallAt3Unchanged:
+        rankingQuality(baselineResults).recallAt3 === candidateRecallAt3(candidateResults),
+    },
+    answerabilityPreservedByConstruction: {
+      retrievalThresholdUsedForDecisions: PROVISIONAL_THRESHOLD,
+      baselineDecisionSource: "original baseline retrieval Top-1 score",
+      candidateDecisionSource: "original baseline retrieval Top-1 score",
+      changedAcceptRejectDecisions: changedRerankerAcceptRejectDecisions(candidateResults),
+      baseline: answerabilityAtThreshold(baselineResults, PROVISIONAL_THRESHOLD),
+      candidate: answerabilityAtThreshold(baselineResults, PROVISIONAL_THRESHOLD),
+      unchanged: true,
+    },
+    endToEndDecisionsPreservedByConstruction: {
+      baseline: endToEndAtThreshold(baselineResults, PROVISIONAL_THRESHOLD),
+      candidateAcceptRejectOnly: endToEndAtThreshold(baselineResults, PROVISIONAL_THRESHOLD),
+      changedAcceptRejectDecisions: [],
+      note: "Ranking changes are measured separately; accept/reject decisions remain baseline decisions.",
+    },
+    decisionRule: decisionRuleResult,
+    deterministic: true,
+    perAnswerableQuery: candidateResults
+      .filter((result) => result.answerable)
+      .map(roundFaqQuestionRerankerResult),
+  };
+}
+
+async function faqQuestionRerankBaselineTop3(
+  baselineResults: readonly QueryResult[],
+  generator: TransformersE5SmallPassageEmbeddingGenerator,
+): Promise<FaqQuestionRerankerResult[]> {
+  const faqQuestionEmbeddings = new Map<string, number[]>();
+  const results: FaqQuestionRerankerResult[] = [];
+  for (const result of baselineResults) {
+    const queryEmbedding = await generator.embedQuery(result.query);
+    const scoredCandidates: RerankedCandidate[] = [];
+    for (const candidate of result.topCandidates) {
+      const canonicalFaqQuestion = extractCanonicalFaqQuestion(candidate.content);
+      const cached = faqQuestionEmbeddings.get(canonicalFaqQuestion);
+      let faqQuestionEmbedding = cached;
+      if (faqQuestionEmbedding === undefined) {
+        faqQuestionEmbedding = (await generator.embedPassage(canonicalFaqQuestion)).embedding;
+        faqQuestionEmbeddings.set(canonicalFaqQuestion, faqQuestionEmbedding);
+      }
+      scoredCandidates.push({
+        ...candidate,
+        canonicalFaqQuestion,
+        faqQuestionScore: cosineSimilarity(queryEmbedding.embedding, faqQuestionEmbedding),
+        candidateRank: candidate.baselineRank,
+      });
+    }
+    const rerankedCandidates = scoredCandidates
+      .sort((left, right) => {
+        const scoreDelta = right.faqQuestionScore - left.faqQuestionScore;
+        return scoreDelta === 0 ? left.baselineRank - right.baselineRank : scoreDelta;
+      })
+      .map((candidate, index) => ({
+        ...candidate,
+        candidateRank: (index + 1) as 1 | 2 | 3,
+      }));
+    const candidateTop1 = rerankedCandidates[0];
+    const candidateKeys = rerankedCandidates.map((candidate) => candidate.chunkKey);
+    const candidateExpectedRank =
+      result.expectedResult === null
+        ? null
+        : expectedRankInTopK(candidateKeys, result.expectedResult);
+    results.push({
+      ...result,
+      baselineAcceptedAt080: accepted(result, PROVISIONAL_THRESHOLD),
+      candidateTop1Content: candidateTop1?.content ?? null,
+      candidateTop1ChunkKey: candidateTop1?.chunkKey ?? null,
+      candidateTop1RetrievalScore: candidateTop1?.retrievalScore ?? null,
+      candidateTop1FaqQuestionScore: candidateTop1?.faqQuestionScore ?? null,
+      candidateExpectedRank,
+      candidateTop1Correct: candidateExpectedRank === 1,
+      candidateReciprocalRank: candidateExpectedRank === null ? 0 : 1 / candidateExpectedRank,
+      candidateTopCandidates: rerankedCandidates,
+      rankingChanged: result.top1ChunkKey !== (candidateTop1?.chunkKey ?? null),
+    });
+  }
+  return results;
+}
+
+function baselineWrongTop1Answerable(results: readonly QueryResult[]) {
+  return results.filter((result) => result.answerable && !result.top1Correct);
+}
+
+function changedAnswerableRankings(results: readonly FaqQuestionRerankerResult[]) {
+  return results
+    .filter((result) => result.answerable && result.rankingChanged)
+    .map(roundFaqQuestionRerankerResult);
+}
+
+function correctedRerankerCases(results: readonly FaqQuestionRerankerResult[]) {
+  return results
+    .filter((result) => result.answerable && !result.top1Correct && result.candidateTop1Correct)
+    .map((result) => result.id);
+}
+
+function regressedRerankerCases(results: readonly FaqQuestionRerankerResult[]) {
+  return results
+    .filter((result) => result.answerable && result.top1Correct && !result.candidateTop1Correct)
+    .map((result) => result.id);
+}
+
+function wrongToDifferentWrongChanges(results: readonly FaqQuestionRerankerResult[]) {
+  return results
+    .filter(
+      (result) =>
+        result.answerable &&
+        !result.top1Correct &&
+        !result.candidateTop1Correct &&
+        result.rankingChanged,
+    )
+    .map((result) => result.id);
+}
+
+function faqRerankerBaselineMetrics(results: readonly QueryResult[]) {
+  const quality = rankingQuality(results);
+  return {
+    top1Accuracy: quality.top1Accuracy,
+    recallAt3: quality.recallAt3,
+    mrr: quality.mrr,
+  };
+}
+
+function faqRerankerCandidateMetrics(results: readonly FaqQuestionRerankerResult[]) {
+  return {
+    top1Accuracy: candidateTop1Accuracy(results),
+    recallAt3: candidateRecallAt3(results),
+    mrr: candidateMrr(results),
+  };
+}
+
+function candidateTop1Accuracy(results: readonly FaqQuestionRerankerResult[]) {
+  const answerable = results.filter((result) => result.answerable);
+  return ratio(
+    answerable.filter((result) => result.candidateTop1Correct).length,
+    answerable.length,
+  );
+}
+
+function candidateRecallAt3(results: readonly FaqQuestionRerankerResult[]) {
+  const answerable = results.filter((result) => result.answerable);
+  return ratio(answerable.filter((result) => result.top3Correct).length, answerable.length);
+}
+
+function candidateMrr(results: readonly FaqQuestionRerankerResult[]) {
+  const answerable = results.filter((result) => result.answerable);
+  return ratio(
+    answerable.reduce((sum, result) => sum + result.candidateReciprocalRank, 0),
+    answerable.length,
+  );
+}
+
+function changedRerankerAcceptRejectDecisions(results: readonly FaqQuestionRerankerResult[]) {
+  return results.filter(
+    (result) => result.baselineAcceptedAt080 !== accepted(result, PROVISIONAL_THRESHOLD),
+  );
+}
+
+function faqQuestionRerankerDecisionRule(
+  baselineResults: readonly QueryResult[],
+  candidateResults: readonly FaqQuestionRerankerResult[],
+  recoverableWrongTop1QueryIds: readonly string[],
+) {
+  const corrected = correctedRerankerCases(candidateResults);
+  const regressions = regressedRerankerCases(candidateResults);
+  const wrongToDifferentWrong = wrongToDifferentWrongChanges(candidateResults);
+  const baselineQuality = rankingQuality(baselineResults);
+  const candidateMetrics = faqRerankerCandidateMetrics(candidateResults);
+  const changedAcceptRejectDecisions = changedRerankerAcceptRejectDecisions(candidateResults);
+  const correctsAllRecoverable =
+    recoverableWrongTop1QueryIds.length > 0 &&
+    recoverableWrongTop1QueryIds.every((id) => corrected.includes(id));
+  const passes =
+    correctsAllRecoverable &&
+    regressions.length === 0 &&
+    changedAcceptRejectDecisions.length === 0 &&
+    candidateMetrics.recallAt3 === baselineQuality.recallAt3;
+  return {
+    decision: passes ? "pass" : "reject",
+    passes,
+    correctsAllRecoverableWrongTop1: correctsAllRecoverable,
+    zeroRegressionsAmongBaselineCorrectTop1: regressions.length === 0,
+    acceptRejectDecisionsUnchanged: changedAcceptRejectDecisions.length === 0,
+    recallAt3Unchanged: candidateMetrics.recallAt3 === baselineQuality.recallAt3,
+    deterministic: true,
+    correctedRecoverableQueryIds: corrected.filter((id) =>
+      recoverableWrongTop1QueryIds.includes(id),
+    ),
+    recoverableWrongTop1QueryIds,
+    regressedQueryIds: regressions,
+    wrongToDifferentWrongQueryIds: wrongToDifferentWrong,
+    rejectionReason: passes
+      ? null
+      : "Candidate fails the fixed decision rule if any recoverable wrong-Top-1 case remains uncorrected, any baseline-correct Top-1 answerable query regresses, accept/reject changes, or Recall@3 changes.",
+  };
 }
 
 function cosineSimilarity(left: readonly number[], right: readonly number[]): number {
@@ -797,6 +1095,12 @@ async function evaluateRecipe(
     const top2 = top[1];
     const top3 = top[2];
     const topKeys = top.map((chunk) => chunk.chunkKey);
+    const topCandidates = top.map((chunk, index) => ({
+      baselineRank: (index + 1) as 1 | 2 | 3,
+      chunkKey: chunk.chunkKey,
+      content: chunk.content,
+      retrievalScore: chunk.score,
+    }));
     const expectedRank =
       item.expectedResult === null ? null : expectedRankInTopK(topKeys, item.expectedResult);
 
@@ -819,6 +1123,7 @@ async function evaluateRecipe(
       reciprocalRank: expectedRank === null ? 0 : 1 / expectedRank,
       marginTop1MinusTop2:
         top1 !== undefined && top2 !== undefined ? top1.score - top2.score : null,
+      topCandidates,
     });
   }
   return results;
@@ -1415,6 +1720,41 @@ function roundQuestionGateResult(result: QuestionGateResult) {
   };
 }
 
+function roundFaqQuestionRerankerResult(result: FaqQuestionRerankerResult) {
+  return {
+    id: result.id,
+    category: result.category,
+    query: result.query,
+    expectedResult: result.expectedResult,
+    baseline: {
+      top1ChunkKey: result.top1ChunkKey,
+      top1RetrievalScore: roundNullable(result.top1Score),
+      top1Correct: result.top1Correct,
+      expectedRank: result.expectedRank,
+      reciprocalRank: round(result.reciprocalRank),
+      acceptedAt080: result.baselineAcceptedAt080,
+    },
+    candidate: {
+      top1ChunkKey: result.candidateTop1ChunkKey,
+      top1RetrievalScore: roundNullable(result.candidateTop1RetrievalScore),
+      top1FaqQuestionScore: roundNullable(result.candidateTop1FaqQuestionScore),
+      top1Correct: result.candidateTop1Correct,
+      expectedRank: result.candidateExpectedRank,
+      reciprocalRank: round(result.candidateReciprocalRank),
+      acceptedAt080PreservedFromBaseline: result.baselineAcceptedAt080,
+    },
+    rankingChanged: result.rankingChanged,
+    top3Candidates: result.candidateTopCandidates.map((candidate) => ({
+      chunkKey: candidate.chunkKey,
+      baselineRank: candidate.baselineRank,
+      candidateRank: candidate.candidateRank,
+      originalRetrievalScore: round(candidate.retrievalScore),
+      canonicalFaqQuestion: candidate.canonicalFaqQuestion,
+      faqQuestionScore: round(candidate.faqQuestionScore),
+    })),
+  };
+}
+
 function requiredResultById<T extends QueryResult>(results: readonly T[], id: string): T {
   const result = results.find((item) => item.id === id);
   if (result === undefined) {
@@ -1472,7 +1812,22 @@ function parseCliOptions(args: string[]): CliOptions {
     };
   }
 
-  throw new Error("--experiment only supports `brand-token-normalization` or `faq-question-gate`.");
+  if (experiment === "faq-question-reranker") {
+    const resolvedOutputPath = outputPath ?? DEFAULT_OUTPUT_PATH;
+    if (resolvedOutputPath !== FAQ_QUESTION_RERANKER_EXPERIMENT_OUTPUT_PATH) {
+      throw new Error(
+        `FAQ question-reranker experiment output must be ${FAQ_QUESTION_RERANKER_EXPERIMENT_OUTPUT_PATH}.`,
+      );
+    }
+    return {
+      mode: "faq-question-reranker-experiment",
+      outputPath: resolvedOutputPath,
+    };
+  }
+
+  throw new Error(
+    "--experiment only supports `brand-token-normalization`, `faq-question-gate`, or `faq-question-reranker`.",
+  );
 }
 
 function buildFixedThresholdSweep(startInclusive: number, endInclusive: number, step: number) {
