@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { embedAndActivateStagedVersion } from "../../src/rag/embed-staged-version.js";
+import {
+  embedAndActivateStagedVersion,
+  embedStagedVersion,
+} from "../../src/rag/embed-staged-version.js";
 import type { ChunkCore, DocumentVersionCore } from "../../src/rag/document-store.js";
+import type { PassageEmbeddingGenerator } from "../../src/rag/e5-passage-embeddings.js";
 import {
   RAG_EMBEDDING_PROFILE,
   embeddingProfileMetadata,
@@ -176,6 +180,93 @@ describe("embedAndActivateStagedVersion", () => {
     const store = new InMemoryRagDocumentStore();
     await expect(
       embedAndActivateStagedVersion(store, "doc", {
+        embedPassage: () =>
+          Promise.resolve({
+            embedding: vector(0.1),
+            inputHash: "hash",
+            tokenCount: 8,
+            l2Norm: 1,
+            prefixed: true,
+          }),
+      }),
+    ).rejects.toThrow(RagStorageError);
+  });
+});
+
+describe("embedStagedVersion", () => {
+  it("embeds the staged version without activating it", async () => {
+    const store = new InMemoryRagDocumentStore();
+    await store.stageVersion({
+      version: versionCore(1),
+      chunks: [chunkCore(1, 1), chunkCore(1, 2)],
+    });
+
+    const result = await embedStagedVersion(
+      store,
+      "doc",
+      {
+        embedPassage: (content: string) =>
+          Promise.resolve({
+            embedding: vector(0.1),
+            inputHash: `input-hash-${content}`,
+            tokenCount: 8,
+            l2Norm: 1,
+            prefixed: true,
+          }),
+      },
+      { now: () => "2026-07-21T00:00:10.000Z" },
+    );
+
+    expect(result).toEqual({
+      documentKey: "doc",
+      version: 1,
+      chunkCount: 2,
+      existingEmbeddingCount: 0,
+      generatedEmbeddingCount: 2,
+      activated: false,
+    });
+    expect(await store.getChunkEmbeddings("doc", 1)).toHaveLength(2);
+    // The version stays staged: embedding alone must never advance the active pointer.
+    expect(await store.getActiveVersion("doc")).toBeUndefined();
+    expect(await store.getDocument("doc")).toBeUndefined();
+    expect((await store.getStagedVersion("doc"))?.version).toBe(1);
+  });
+
+  it("is idempotent: a repeat run generates nothing and leaves the stored embeddings untouched", async () => {
+    const store = new InMemoryRagDocumentStore();
+    await store.stageVersion({
+      version: versionCore(1),
+      chunks: [chunkCore(1, 1), chunkCore(1, 2)],
+    });
+    const generator: PassageEmbeddingGenerator = {
+      embedPassage: (content: string) =>
+        Promise.resolve({
+          embedding: vector(0.1),
+          inputHash: `input-hash-${content}`,
+          tokenCount: 8,
+          l2Norm: 1,
+          prefixed: true,
+        }),
+    };
+    const options = { now: () => "2026-07-21T00:00:10.000Z" };
+
+    const first = await embedStagedVersion(store, "doc", generator, options);
+    const afterFirst = await store.getChunkEmbeddings("doc", 1);
+
+    const second = await embedStagedVersion(store, "doc", generator, options);
+
+    expect(first.generatedEmbeddingCount).toBe(2);
+    expect(second.generatedEmbeddingCount).toBe(0);
+    expect(second.existingEmbeddingCount).toBe(2);
+    expect(second.activated).toBe(false);
+    expect(await store.getChunkEmbeddings("doc", 1)).toEqual(afterFirst);
+    expect(await store.getActiveVersion("doc")).toBeUndefined();
+  });
+
+  it("rejects a document without a staged version", async () => {
+    const store = new InMemoryRagDocumentStore();
+    await expect(
+      embedStagedVersion(store, "doc", {
         embedPassage: () =>
           Promise.resolve({
             embedding: vector(0.1),

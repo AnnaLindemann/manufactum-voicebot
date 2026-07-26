@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
+import {
+  assertConnectedDisposableDatabase,
+  assertDisposableTestDatabase,
+  resolveDatabaseUrls,
+} from "../helpers/disposable-database.js";
 import type {
   ChunkCore,
   ChunkEmbeddingCore,
@@ -17,17 +22,18 @@ import { ingestFaqPage, type IngestionMetadata } from "../../src/rag/ingest-faq-
 import type { ExtractedFaqPage } from "../../src/rag/types.js";
 
 /**
- * Integration tests for `PostgresRagDocumentStore`. They run **only** when `RAG_TEST_DATABASE_URL`
- * points at a disposable PostgreSQL database (with the pgvector extension available); otherwise the
- * whole suite is skipped, so `npm run check` never needs a database connection. The URL is read from
- * the environment and never printed.
+ * Integration tests for `PostgresRagDocumentStore`. They run against the disposable PostgreSQL
+ * database in `RAG_TEST_DATABASE_URL` (with the pgvector extension available).
  *
- * The database is treated as disposable: tables are truncated before each test.
+ * The database is treated as disposable: tables are truncated before each test. Because that TRUNCATE
+ * is destructive, the suite must never run against the working RAG database that holds the real
+ * Manufactum FAQ. The safety gate lives in `tests/helpers/disposable-database.ts`; this suite wires it
+ * in and, deliberately, **does not skip** — a misconfiguration (unset, same database, or a database
+ * whose name does not end with `_test`) fails fast in `beforeAll` with a clear error rather than
+ * silently passing. The live connection is verified before the first TRUNCATE. Neither URL nor any
+ * credential is ever printed.
  */
-const DATABASE_URL = process.env.RAG_TEST_DATABASE_URL?.trim();
-const PRODUCTION_DATABASE_URL = process.env.DATABASE_URL?.trim();
-const SHOULD_RUN_POSTGRES_INTEGRATION =
-  DATABASE_URL !== undefined && DATABASE_URL.length > 0 && DATABASE_URL !== PRODUCTION_DATABASE_URL;
+const { testUrl: TEST_DATABASE_URL, workingUrl: WORKING_DATABASE_URL } = resolveDatabaseUrls();
 
 const MODEL: EmbeddingModelRef = embeddingProfileModelRef();
 const PROFILE_METADATA = embeddingProfileMetadata();
@@ -123,7 +129,7 @@ function basis(index: number): number[] {
   return vector;
 }
 
-describe.skipIf(!SHOULD_RUN_POSTGRES_INTEGRATION)("PostgresRagDocumentStore (integration)", () => {
+describe("PostgresRagDocumentStore (integration)", () => {
   let pool: pg.Pool;
   let store: PostgresRagDocumentStore;
 
@@ -137,7 +143,32 @@ describe.skipIf(!SHOULD_RUN_POSTGRES_INTEGRATION)("PostgresRagDocumentStore (int
   }
 
   beforeAll(async () => {
-    pool = new pg.Pool({ connectionString: DATABASE_URL });
+    // Fail fast on a misconfigured or unsafe test database — do not skip.
+    assertDisposableTestDatabase(TEST_DATABASE_URL, WORKING_DATABASE_URL);
+    pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
+
+    // Runtime net: verify the database actually connected to before any destructive TRUNCATE.
+    const live = await pool.query<{
+      database: string;
+      server_addr: string | null;
+      server_port: number | null;
+    }>(
+      "SELECT current_database() AS database, inet_server_addr()::text AS server_addr, inet_server_port() AS server_port",
+    );
+    const info = live.rows[0];
+    if (info === undefined) {
+      throw new Error("Could not read the connected database identity before TRUNCATE.");
+    }
+    assertConnectedDisposableDatabase(
+      { database: info.database, serverAddr: info.server_addr, serverPort: info.server_port },
+      TEST_DATABASE_URL,
+      WORKING_DATABASE_URL,
+    );
+    // Non-secret evidence that the destructive suite is on the disposable database.
+    console.log(
+      `[rag-integration] connected database=${info.database} port=${String(info.server_port ?? "n/a")}`,
+    );
+
     await runMigrations(pool);
     store = new PostgresRagDocumentStore(pool);
   });

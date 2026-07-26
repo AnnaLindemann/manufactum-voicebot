@@ -19,10 +19,19 @@ export type EmbedStagedVersionResult = {
   chunkCount: number;
   existingEmbeddingCount: number;
   generatedEmbeddingCount: number;
-  activated: true;
+  /** Whether this call also activated the version (`embedAndActivateStagedVersion` only). */
+  activated: boolean;
 };
 
-export async function embedAndActivateStagedVersion(
+/**
+ * Phase B of the staged→embed→activate lifecycle (`rag-embeddings-and-retrieval-design.md` §4):
+ * embed every chunk of the staged version that is not yet covered by the active embedding profile,
+ * and persist the vectors append-only. It does **not** activate the version.
+ *
+ * Idempotent: chunks already embedded for this exact profile are skipped, so a repeat call generates
+ * nothing and leaves the embedding count unchanged. It never writes over an existing embedding.
+ */
+export async function embedStagedVersion(
   store: RagDocumentStore,
   documentKey: string,
   generator: PassageEmbeddingGenerator,
@@ -67,16 +76,32 @@ export async function embedAndActivateStagedVersion(
     await store.saveChunkEmbeddings(generated);
   }
 
-  await store.activateVersion(documentKey, staged.version, embeddingProfileModelRef(profile));
-
   return {
     documentKey,
     version: staged.version,
     chunkCount: chunks.length,
     existingEmbeddingCount: existingKeys.size,
     generatedEmbeddingCount: generated.length,
-    activated: true,
+    activated: false,
   };
+}
+
+/**
+ * Phase B + C combined: embed the staged version (via {@link embedStagedVersion}) and then activate
+ * it through the store's readiness gate (`store.activateVersion`). Activation is a single
+ * transaction and only succeeds once every chunk of the version carries an embedding for the active
+ * profile. Behaviour is unchanged from before the embed/activate split.
+ */
+export async function embedAndActivateStagedVersion(
+  store: RagDocumentStore,
+  documentKey: string,
+  generator: PassageEmbeddingGenerator,
+  options: EmbedStagedVersionOptions = {},
+): Promise<EmbedStagedVersionResult> {
+  const profile = options.profile ?? RAG_EMBEDDING_PROFILE;
+  const embedded = await embedStagedVersion(store, documentKey, generator, options);
+  await store.activateVersion(documentKey, embedded.version, embeddingProfileModelRef(profile));
+  return { ...embedded, activated: true };
 }
 
 function chunkEmbeddingFromResult(
