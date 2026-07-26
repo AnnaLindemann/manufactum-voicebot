@@ -31,10 +31,32 @@ type QueryResult = EvaluationQuery & {
   marginTop1MinusTop2: number | null;
 };
 
+type ExperimentQueryResult = QueryResult & {
+  recipeId: QueryInputRecipeId;
+  recipeDescription: string;
+  queryEmbeddingInput: string;
+};
+
+type QueryInputRecipeId = "baseline" | "experimental-manufactum-token-normalized";
+
+type QueryInputRecipe = {
+  id: QueryInputRecipeId;
+  description: string;
+  prepareQueryForEmbedding: (query: string) => string;
+};
+
+type CliOptions =
+  | { mode: "baseline"; outputPath: string | undefined }
+  | { mode: "brand-token-normalization-experiment"; outputPath: string };
+
 const DATASET_PATH = "tests/fixtures/rag/retrieval-evaluation-dataset.json";
 const DEFAULT_OUTPUT_PATH = "docs/evaluation/rag-retrieval-evaluation-results.json";
+const BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH =
+  "docs/evaluation/rag-brand-token-normalization-experiment-results.json";
 const MAX_CHUNKS = 3;
 const PROVISIONAL_THRESHOLD = 0.8;
+const COMPARISON_THRESHOLDS = [0.8, 0.85] as const;
+const PRIMARY_CANARY_QUERY_IDS = ["para-003-a", "para-006-a", "para-012-b"] as const;
 const CATEGORIES: Category[] = ["exact", "paraphrase", "hard_negative", "irrelevant"];
 const EXPECTED_DATASET_COUNTS: Record<Category, number> = {
   exact: 12,
@@ -42,9 +64,22 @@ const EXPECTED_DATASET_COUNTS: Record<Category, number> = {
   hard_negative: 8,
   irrelevant: 8,
 };
+const QUERY_INPUT_RECIPES: QueryInputRecipe[] = [
+  {
+    id: "baseline",
+    description: "Production query embedding input: apply the existing E5 `query: ` prefix.",
+    prepareQueryForEmbedding: (query) => query,
+  },
+  {
+    id: "experimental-manufactum-token-normalized",
+    description:
+      "Evaluation-only candidate: remove only standalone case-insensitive `Manufactum`, normalize whitespace, then apply the existing E5 `query: ` prefix.",
+    prepareQueryForEmbedding: normalizeStandaloneManufactumToken,
+  },
+];
 
 async function main(): Promise<void> {
-  const outputPath = parseOutputPath(process.argv.slice(2));
+  const cliOptions = parseCliOptions(process.argv.slice(2));
   const connectionString = process.env.DATABASE_URL?.trim();
   if (connectionString === undefined || connectionString.length === 0) {
     throw new Error("DATABASE_URL must be set for retrieval evaluation.");
@@ -72,38 +107,18 @@ async function main(): Promise<void> {
     const generator = new TransformersE5SmallPassageEmbeddingGenerator(generatorOptions);
     const model = embeddingProfileModelRef();
 
-    const results: QueryResult[] = [];
-    for (const item of frozenDataset) {
-      const queryEmbedding = await generator.embedQuery(item.query);
-      const top = await store.searchRelevantChunks({
-        queryEmbedding: queryEmbedding.embedding,
-        model,
-        maxChunks: MAX_CHUNKS,
-      });
-      const top1 = top[0];
-      const top2 = top[1];
-      const top3 = top[2];
-      const topKeys = top.map((chunk) => chunk.chunkKey);
-      const expectedRank =
-        item.expectedResult === null ? null : expectedRankInTopK(topKeys, item.expectedResult);
-
-      results.push({
-        ...item,
-        answerable: isAnswerable(item),
-        top1ChunkKey: top1?.chunkKey ?? null,
-        top1Score: top1?.score ?? null,
-        top2ChunkKey: top2?.chunkKey ?? null,
-        top2Score: top2?.score ?? null,
-        top3ChunkKey: top3?.chunkKey ?? null,
-        top3Score: top3?.score ?? null,
-        expectedRank,
-        top1Correct: expectedRank === 1,
-        top3Correct: expectedRank !== null,
-        reciprocalRank: expectedRank === null ? 0 : 1 / expectedRank,
-        marginTop1MinusTop2:
-          top1 !== undefined && top2 !== undefined ? top1.score - top2.score : null,
-      });
+    const baselineRecipe = QUERY_INPUT_RECIPES[0];
+    const candidateRecipe = QUERY_INPUT_RECIPES[1];
+    if (baselineRecipe === undefined || candidateRecipe === undefined) {
+      throw new Error("Expected baseline and candidate query recipes to be configured.");
     }
+    const baselineResults = await evaluateRecipe(
+      frozenDataset,
+      baselineRecipe,
+      generator,
+      store,
+      model,
+    );
 
     const datasetAfterScoring = JSON.stringify(frozenDataset);
     if (datasetAfterScoring !== datasetBeforeScoring) {
@@ -114,64 +129,146 @@ async function main(): Promise<void> {
       throw new Error("Evaluation dataset file changed during scoring.");
     }
 
-    const rankingSweep = sweepThresholds(results, rankingAtThreshold);
-    const answerabilitySweep = sweepThresholds(results, answerabilityAtThreshold);
-    const endToEndSweep = sweepThresholds(results, endToEndAtThreshold);
-    const answerability080 = answerabilityAtThreshold(results, PROVISIONAL_THRESHOLD);
-    const endToEnd080 = endToEndAtThreshold(results, PROVISIONAL_THRESHOLD);
+    const answerability080 = answerabilityAtThreshold(baselineResults, PROVISIONAL_THRESHOLD);
+    const endToEnd080 = endToEndAtThreshold(baselineResults, PROVISIONAL_THRESHOLD);
     verifyThreshold080(answerability080, endToEnd080);
 
-    const report = {
-      dataset: {
-        path: DATASET_PATH,
-        sha256: datasetFile.sha256,
-        composition: summarizeDataset(frozenDataset),
-        immutableDuringEvaluation: true,
-        loadedAndValidatedBeforeModelScoring: true,
-      },
-      embeddingProfile: {
-        id: RAG_EMBEDDING_PROFILE.id,
-        modelId: RAG_EMBEDDING_PROFILE.modelId,
-        modelRevision: RAG_EMBEDDING_PROFILE.modelRevision,
-        artifact: RAG_EMBEDDING_PROFILE.artifact,
-        dimension: RAG_EMBEDDING_PROFILE.dimension,
-        queryInputRecipe: RAG_EMBEDDING_PROFILE.queryInputRecipe,
-      },
-      maxChunks: MAX_CHUNKS,
-      provisionalThreshold: PROVISIONAL_THRESHOLD,
-      perQuery: results.map(roundQueryResult),
-      ranking: {
-        answerableCount: results.filter((result) => result.answerable).length,
-        quality: rankingQuality(results),
-        perCategory: {
-          exact: rankingQuality(results.filter((result) => result.category === "exact")),
-          paraphrase: rankingQuality(results.filter((result) => result.category === "paraphrase")),
-        },
-        threshold080: rankingAtThreshold(results, PROVISIONAL_THRESHOLD),
-        thresholdSweep: rankingSweep,
-      },
-      answerability: {
-        answerableCount: results.filter((result) => result.answerable).length,
-        unanswerableCount: results.filter((result) => !result.answerable).length,
-        threshold080: answerability080,
-        thresholdSweep: answerabilitySweep,
-        bestF1ForAnswerability: bestBy(answerabilitySweep, "f1"),
-      },
-      endToEnd: {
-        threshold080: endToEnd080,
-        thresholdSweep: endToEndSweep,
-      },
-      representative: representative(results, PROVISIONAL_THRESHOLD),
-    };
+    const report =
+      cliOptions.mode === "baseline"
+        ? baselineReport(frozenDataset, datasetFile.sha256, baselineResults.map(stripRecipeResult))
+        : experimentReport(
+            frozenDataset,
+            datasetFile.sha256,
+            baselineResults,
+            await evaluateRecipe(frozenDataset, candidateRecipe, generator, store, model),
+          );
 
-    if (outputPath !== undefined) {
-      await fs.mkdir(path.dirname(outputPath), { recursive: true });
-      await fs.writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+    if (cliOptions.outputPath !== undefined) {
+      await fs.mkdir(path.dirname(cliOptions.outputPath), { recursive: true });
+      await fs.writeFile(cliOptions.outputPath, `${JSON.stringify(report, null, 2)}\n`);
     }
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await pool.end();
   }
+}
+
+function baselineReport(
+  dataset: readonly EvaluationQuery[],
+  datasetSha256: string,
+  results: readonly QueryResult[],
+) {
+  const rankingSweep = sweepThresholds(results, rankingAtThreshold);
+  const answerabilitySweep = sweepThresholds(results, answerabilityAtThreshold);
+  const endToEndSweep = sweepThresholds(results, endToEndAtThreshold);
+  const answerability080 = answerabilityAtThreshold(results, PROVISIONAL_THRESHOLD);
+  const endToEnd080 = endToEndAtThreshold(results, PROVISIONAL_THRESHOLD);
+  return {
+    dataset: {
+      path: DATASET_PATH,
+      sha256: datasetSha256,
+      composition: summarizeDataset(dataset),
+      immutableDuringEvaluation: true,
+      loadedAndValidatedBeforeModelScoring: true,
+    },
+    embeddingProfile: {
+      id: RAG_EMBEDDING_PROFILE.id,
+      modelId: RAG_EMBEDDING_PROFILE.modelId,
+      modelRevision: RAG_EMBEDDING_PROFILE.modelRevision,
+      artifact: RAG_EMBEDDING_PROFILE.artifact,
+      dimension: RAG_EMBEDDING_PROFILE.dimension,
+      queryInputRecipe: RAG_EMBEDDING_PROFILE.queryInputRecipe,
+    },
+    maxChunks: MAX_CHUNKS,
+    provisionalThreshold: PROVISIONAL_THRESHOLD,
+    perQuery: results.map(roundQueryResult),
+    ranking: {
+      answerableCount: results.filter((result) => result.answerable).length,
+      quality: rankingQuality(results),
+      perCategory: {
+        exact: rankingQuality(results.filter((result) => result.category === "exact")),
+        paraphrase: rankingQuality(results.filter((result) => result.category === "paraphrase")),
+      },
+      threshold080: rankingAtThreshold(results, PROVISIONAL_THRESHOLD),
+      thresholdSweep: rankingSweep,
+    },
+    answerability: {
+      answerableCount: results.filter((result) => result.answerable).length,
+      unanswerableCount: results.filter((result) => !result.answerable).length,
+      threshold080: answerability080,
+      thresholdSweep: answerabilitySweep,
+      bestF1ForAnswerability: bestBy(answerabilitySweep, "f1"),
+    },
+    endToEnd: {
+      threshold080: endToEnd080,
+      thresholdSweep: endToEndSweep,
+    },
+    representative: representative(results, PROVISIONAL_THRESHOLD, compactQueryResult),
+  };
+}
+
+function stripRecipeResult(result: ExperimentQueryResult): QueryResult {
+  return {
+    id: result.id,
+    category: result.category,
+    query: result.query,
+    expectedResult: result.expectedResult,
+    answerable: result.answerable,
+    top1ChunkKey: result.top1ChunkKey,
+    top1Score: result.top1Score,
+    top2ChunkKey: result.top2ChunkKey,
+    top2Score: result.top2Score,
+    top3ChunkKey: result.top3ChunkKey,
+    top3Score: result.top3Score,
+    expectedRank: result.expectedRank,
+    top1Correct: result.top1Correct,
+    top3Correct: result.top3Correct,
+    reciprocalRank: result.reciprocalRank,
+    marginTop1MinusTop2: result.marginTop1MinusTop2,
+  };
+}
+
+function experimentReport(
+  dataset: readonly EvaluationQuery[],
+  datasetSha256: string,
+  baselineResults: readonly ExperimentQueryResult[],
+  candidateResults: readonly ExperimentQueryResult[],
+) {
+  return {
+    dataset: {
+      path: DATASET_PATH,
+      sha256: datasetSha256,
+      composition: summarizeDataset(dataset),
+      immutableDuringEvaluation: true,
+      loadedAndValidatedBeforeModelScoring: true,
+    },
+    embeddingProfile: {
+      id: RAG_EMBEDDING_PROFILE.id,
+      modelId: RAG_EMBEDDING_PROFILE.modelId,
+      modelRevision: RAG_EMBEDDING_PROFILE.modelRevision,
+      artifact: RAG_EMBEDDING_PROFILE.artifact,
+      dimension: RAG_EMBEDDING_PROFILE.dimension,
+      queryInputRecipe: RAG_EMBEDDING_PROFILE.queryInputRecipe,
+    },
+    queryInputRecipes: QUERY_INPUT_RECIPES.map((recipe) => ({
+      id: recipe.id,
+      description: recipe.description,
+      e5PrefixAppliedByGenerator: RAG_EMBEDDING_PROFILE.queryPrefix,
+    })),
+    maxChunks: MAX_CHUNKS,
+    provisionalThreshold: PROVISIONAL_THRESHOLD,
+    brandTokenFinding: brandTokenFinding(dataset, baselineResults),
+    variants: {
+      baseline: summarizeVariant(baselineResults),
+      "experimental-manufactum-token-normalized": summarizeVariant(candidateResults),
+    },
+    comparison: compareVariants(baselineResults, candidateResults, COMPARISON_THRESHOLDS),
+    primaryCanaries: PRIMARY_CANARY_QUERY_IDS.map((id) =>
+      compareQueryById(baselineResults, candidateResults, id),
+    ),
+    currentlyCorrectRegressions: currentlyCorrectRegressions(baselineResults, candidateResults),
+    decisionRule: decisionRule(baselineResults, candidateResults, COMPARISON_THRESHOLDS),
+  };
 }
 
 async function readFrozenDataset(): Promise<{ raw: string; sha256: string }> {
@@ -217,6 +314,291 @@ function summarizeDataset(dataset: readonly EvaluationQuery[]): Record<Category,
       dataset.filter((item) => item.category === category).length,
     ]),
   ) as Record<Category, number>;
+}
+
+async function evaluateRecipe(
+  dataset: readonly EvaluationQuery[],
+  recipe: QueryInputRecipe,
+  generator: TransformersE5SmallPassageEmbeddingGenerator,
+  store: PostgresRagDocumentStore,
+  model: ReturnType<typeof embeddingProfileModelRef>,
+): Promise<ExperimentQueryResult[]> {
+  const results: ExperimentQueryResult[] = [];
+  for (const item of dataset) {
+    const queryEmbeddingInput = recipe.prepareQueryForEmbedding(item.query);
+    const queryEmbedding = await generator.embedQuery(queryEmbeddingInput);
+    const top = await store.searchRelevantChunks({
+      queryEmbedding: queryEmbedding.embedding,
+      model,
+      maxChunks: MAX_CHUNKS,
+    });
+    const top1 = top[0];
+    const top2 = top[1];
+    const top3 = top[2];
+    const topKeys = top.map((chunk) => chunk.chunkKey);
+    const expectedRank =
+      item.expectedResult === null ? null : expectedRankInTopK(topKeys, item.expectedResult);
+
+    results.push({
+      ...item,
+      answerable: isAnswerable(item),
+      recipeId: recipe.id,
+      recipeDescription: recipe.description,
+      queryEmbeddingInput,
+      top1ChunkKey: top1?.chunkKey ?? null,
+      top1Score: top1?.score ?? null,
+      top2ChunkKey: top2?.chunkKey ?? null,
+      top2Score: top2?.score ?? null,
+      top3ChunkKey: top3?.chunkKey ?? null,
+      top3Score: top3?.score ?? null,
+      expectedRank,
+      top1Correct: expectedRank === 1,
+      top3Correct: expectedRank !== null,
+      reciprocalRank: expectedRank === null ? 0 : 1 / expectedRank,
+      marginTop1MinusTop2:
+        top1 !== undefined && top2 !== undefined ? top1.score - top2.score : null,
+    });
+  }
+  return results;
+}
+
+function normalizeStandaloneManufactumToken(query: string): string {
+  return query
+    .replace(/(^|(?<=[^\p{L}\p{N}_]))Manufactum(?=$|[^\p{L}\p{N}_])/giu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function brandTokenFinding(
+  dataset: readonly EvaluationQuery[],
+  baselineResults: readonly QueryResult[],
+) {
+  const brandAnswerable = dataset.filter(
+    (item) => isAnswerable(item) && containsStandaloneManufactumToken(item.query),
+  );
+  const queries = brandAnswerable.map((item) => {
+    const result = requiredResultById(baselineResults, item.id);
+    return {
+      id: item.id,
+      category: item.category,
+      query: item.query,
+      expectedResult: item.expectedResult,
+      top1ChunkKey: result.top1ChunkKey,
+      top1Score: roundNullable(result.top1Score),
+      top1Correct: result.top1Correct,
+    };
+  });
+  const succeeded = queries.filter((query) => query.top1Correct);
+  const failed = queries.filter((query) => !query.top1Correct);
+  return {
+    standaloneToken: "Manufactum",
+    answerableCount: queries.length,
+    currentlySucceed: succeeded.length,
+    currentlyFail: failed.length,
+    resolution:
+      "The correct baseline count is 11 answerable brand-token queries: 7 are currently Top-1 correct and 4 fail. The phrase `11 currently-correct brand queries` was incorrect.",
+    queries,
+  };
+}
+
+function containsStandaloneManufactumToken(query: string): boolean {
+  return /(^|[^\p{L}\p{N}_])Manufactum(?=$|[^\p{L}\p{N}_])/iu.test(query);
+}
+
+function summarizeVariant(results: readonly ExperimentQueryResult[]) {
+  const rankingSweep = sweepThresholds(results, rankingAtThreshold);
+  const answerabilitySweep = sweepThresholds(results, answerabilityAtThreshold);
+  const endToEndSweep = sweepThresholds(results, endToEndAtThreshold);
+  return {
+    perQuery: results.map(roundExperimentQueryResult),
+    ranking: {
+      answerableCount: results.filter((result) => result.answerable).length,
+      quality: rankingQuality(results),
+      perCategory: {
+        exact: rankingQuality(results.filter((result) => result.category === "exact")),
+        paraphrase: rankingQuality(results.filter((result) => result.category === "paraphrase")),
+      },
+      threshold080: rankingAtThreshold(results, 0.8),
+      threshold085: rankingAtThreshold(results, 0.85),
+      thresholdSweep: rankingSweep,
+    },
+    answerability: {
+      answerableCount: results.filter((result) => result.answerable).length,
+      unanswerableCount: results.filter((result) => !result.answerable).length,
+      threshold080: answerabilityAtThreshold(results, 0.8),
+      threshold085: answerabilityAtThreshold(results, 0.85),
+      thresholdSweep: answerabilitySweep,
+      bestF1ForAnswerability: bestBy(answerabilitySweep, "f1"),
+    },
+    endToEnd: {
+      threshold080: endToEndAtThreshold(results, 0.8),
+      threshold085: endToEndAtThreshold(results, 0.85),
+      thresholdSweep: endToEndSweep,
+    },
+    representative: representative(results, PROVISIONAL_THRESHOLD, compactExperimentQueryResult),
+  };
+}
+
+function compareVariants(
+  baseline: readonly ExperimentQueryResult[],
+  candidate: readonly ExperimentQueryResult[],
+  thresholds: readonly number[],
+) {
+  return {
+    changedQueries: candidate
+      .filter((candidateResult) => {
+        const baselineResult = requiredResultById(baseline, candidateResult.id);
+        return (
+          rankingChanged(baselineResult, candidateResult) ||
+          thresholds.some(
+            (threshold) =>
+              decisionOutcome(baselineResult, threshold) !==
+              decisionOutcome(candidateResult, threshold),
+          )
+        );
+      })
+      .map((candidateResult) => {
+        const baselineResult = requiredResultById(baseline, candidateResult.id);
+        return compareQuery(baselineResult, candidateResult, thresholds);
+      }),
+    thresholdDeltas: thresholds.map((threshold) => ({
+      threshold: round(threshold),
+      ranking: delta(
+        rankingAtThreshold(baseline, threshold),
+        rankingAtThreshold(candidate, threshold),
+      ),
+      answerability: delta(
+        answerabilityAtThreshold(baseline, threshold),
+        answerabilityAtThreshold(candidate, threshold),
+      ),
+      endToEnd: delta(
+        endToEndAtThreshold(baseline, threshold),
+        endToEndAtThreshold(candidate, threshold),
+      ),
+    })),
+  };
+}
+
+function compareQueryById(
+  baseline: readonly ExperimentQueryResult[],
+  candidate: readonly ExperimentQueryResult[],
+  id: string,
+) {
+  return compareQuery(requiredResultById(baseline, id), requiredResultById(candidate, id), [
+    ...COMPARISON_THRESHOLDS,
+  ]);
+}
+
+function compareQuery(
+  baseline: ExperimentQueryResult,
+  candidate: ExperimentQueryResult,
+  thresholds: readonly number[],
+) {
+  return {
+    id: baseline.id,
+    category: baseline.category,
+    query: baseline.query,
+    candidateQueryEmbeddingInput: candidate.queryEmbeddingInput,
+    expectedResult: baseline.expectedResult,
+    baseline: compactExperimentQueryResult(baseline),
+    candidate: compactExperimentQueryResult(candidate),
+    rankingChanged: rankingChanged(baseline, candidate),
+    decisions: thresholds.map((threshold) => ({
+      threshold: round(threshold),
+      baseline: decisionOutcome(baseline, threshold),
+      candidate: decisionOutcome(candidate, threshold),
+      changed: decisionOutcome(baseline, threshold) !== decisionOutcome(candidate, threshold),
+    })),
+  };
+}
+
+function rankingChanged(baseline: QueryResult, candidate: QueryResult): boolean {
+  return (
+    baseline.top1ChunkKey !== candidate.top1ChunkKey ||
+    baseline.top2ChunkKey !== candidate.top2ChunkKey ||
+    baseline.top3ChunkKey !== candidate.top3ChunkKey ||
+    baseline.expectedRank !== candidate.expectedRank
+  );
+}
+
+function decisionOutcome(result: QueryResult, threshold: number): string {
+  if (result.answerable && accepted(result, threshold) && result.top1Correct) {
+    return "correct_accepted";
+  }
+  if (result.answerable && accepted(result, threshold) && !result.top1Correct) {
+    return "wrong_chunk_accepted";
+  }
+  if (result.answerable && !accepted(result, threshold)) {
+    return "answerable_abstained";
+  }
+  if (!result.answerable && accepted(result, threshold)) {
+    return `${result.category}_false_accept`;
+  }
+  return "correct_reject";
+}
+
+function currentlyCorrectRegressions(
+  baseline: readonly ExperimentQueryResult[],
+  candidate: readonly ExperimentQueryResult[],
+) {
+  return baseline
+    .filter((baselineResult) => baselineResult.answerable && baselineResult.top1Correct)
+    .map((baselineResult) => ({
+      baseline: baselineResult,
+      candidate: requiredResultById(candidate, baselineResult.id),
+    }))
+    .filter(({ candidate: candidateResult }) => !candidateResult.top1Correct)
+    .map(({ baseline: baselineResult, candidate: candidateResult }) =>
+      compareQuery(baselineResult, candidateResult, [...COMPARISON_THRESHOLDS]),
+    );
+}
+
+function decisionRule(
+  baseline: readonly ExperimentQueryResult[],
+  candidate: readonly ExperimentQueryResult[],
+  thresholds: readonly number[],
+) {
+  const canaryFailures = PRIMARY_CANARY_QUERY_IDS.filter(
+    (id) => !requiredResultById(candidate, id).top1Correct,
+  );
+  const regressions = currentlyCorrectRegressions(baseline, candidate);
+  const baselineQuality = rankingQuality(baseline);
+  const candidateQuality = rankingQuality(candidate);
+  const falseAcceptIncreases = thresholds.filter((threshold) => {
+    const baselineAnswerability = answerabilityAtThreshold(baseline, threshold);
+    const candidateAnswerability = answerabilityAtThreshold(candidate, threshold);
+    return (
+      candidateAnswerability.hardNegativeFalsePositive >
+        baselineAnswerability.hardNegativeFalsePositive ||
+      candidateAnswerability.irrelevantFalsePositive > baselineAnswerability.irrelevantFalsePositive
+    );
+  });
+  const passes =
+    canaryFailures.length === 0 &&
+    regressions.length === 0 &&
+    candidateQuality.recallAt3 >= baselineQuality.recallAt3 &&
+    falseAcceptIncreases.length === 0;
+  return {
+    mayProceedToLaterProductionDesignCheckpoint: passes,
+    productionBehaviorChanged: false,
+    productionThresholdChanged: false,
+    canaryFailures,
+    currentlyCorrectAnswerableRegressions: regressions.map((regression) => regression.id),
+    baselineRecallAt3: baselineQuality.recallAt3,
+    candidateRecallAt3: candidateQuality.recallAt3,
+    falseAcceptIncreaseThresholds: falseAcceptIncreases.map(round),
+  };
+}
+
+function delta<T extends Record<string, unknown>>(baseline: T, candidate: T): T {
+  const rows = Object.entries(candidate).map(([key, candidateValue]) => {
+    const baselineValue = baseline[key];
+    if (typeof candidateValue === "number" && typeof baselineValue === "number") {
+      return [key, round(candidateValue - baselineValue)];
+    }
+    return [key, candidateValue];
+  });
+  return Object.fromEntries(rows) as T;
 }
 
 function rankingQuality(results: readonly QueryResult[]) {
@@ -376,18 +758,22 @@ function sweepThresholds<T>(
   return rows;
 }
 
-function representative(results: readonly QueryResult[], threshold: number) {
+function representative<T extends QueryResult>(
+  results: readonly T[],
+  threshold: number,
+  compact: (result: T) => Record<string, unknown>,
+) {
   return {
     rankingFailuresAbsentFromTop3: rankingQuality(results).failuresExpectedChunkAbsentFromTop3,
     wrongAcceptedAnswerable: results
       .filter((result) => result.answerable && accepted(result, threshold) && !result.top1Correct)
-      .map(compactQueryResult),
+      .map(compact),
     unanswerableFalseAccepts: results
       .filter((result) => !result.answerable && accepted(result, threshold))
-      .map(compactQueryResult),
+      .map(compact),
     unanswerableCorrectRejects: results
       .filter((result) => !result.answerable && !accepted(result, threshold))
-      .map(compactQueryResult),
+      .map(compact),
   };
 }
 
@@ -403,6 +789,15 @@ function compactQueryResult(result: QueryResult) {
     top3Score: roundNullable(result.top3Score),
     expectedRank: result.expectedRank,
     marginTop1MinusTop2: roundNullable(result.marginTop1MinusTop2),
+  };
+}
+
+function compactExperimentQueryResult(result: ExperimentQueryResult) {
+  return {
+    ...compactQueryResult(result),
+    top2ChunkKey: result.top2ChunkKey,
+    top3ChunkKey: result.top3ChunkKey,
+    queryEmbeddingInput: result.queryEmbeddingInput,
   };
 }
 
@@ -512,13 +907,40 @@ function roundNullable(value: number | null): number | null {
 
 function roundQueryResult(result: QueryResult): QueryResult {
   return {
-    ...result,
+    id: result.id,
+    category: result.category,
+    query: result.query,
+    expectedResult: result.expectedResult,
+    answerable: result.answerable,
+    top1ChunkKey: result.top1ChunkKey,
     top1Score: roundNullable(result.top1Score),
+    top2ChunkKey: result.top2ChunkKey,
     top2Score: roundNullable(result.top2Score),
+    top3ChunkKey: result.top3ChunkKey,
     top3Score: roundNullable(result.top3Score),
-    marginTop1MinusTop2: roundNullable(result.marginTop1MinusTop2),
+    expectedRank: result.expectedRank,
+    top1Correct: result.top1Correct,
+    top3Correct: result.top3Correct,
     reciprocalRank: round(result.reciprocalRank),
+    marginTop1MinusTop2: roundNullable(result.marginTop1MinusTop2),
   };
+}
+
+function roundExperimentQueryResult(result: ExperimentQueryResult): ExperimentQueryResult {
+  return {
+    ...roundQueryResult(result),
+    recipeId: result.recipeId,
+    recipeDescription: result.recipeDescription,
+    queryEmbeddingInput: result.queryEmbeddingInput,
+  };
+}
+
+function requiredResultById<T extends QueryResult>(results: readonly T[], id: string): T {
+  const result = results.find((item) => item.id === id);
+  if (result === undefined) {
+    throw new Error(`Missing evaluation result for query id ${id}.`);
+  }
+  return result;
 }
 
 function sha256Hex(value: string): string {
@@ -534,6 +956,29 @@ function deepFreeze<T>(value: T): Readonly<T> {
     deepFreeze(child);
   }
   return value;
+}
+
+function parseCliOptions(args: string[]): CliOptions {
+  const experimentIndex = args.indexOf("--experiment");
+  const outputPath = parseOutputPath(args);
+  if (experimentIndex === -1) {
+    return { mode: "baseline", outputPath };
+  }
+
+  const experiment = args[experimentIndex + 1]?.trim();
+  if (experiment !== "brand-token-normalization") {
+    throw new Error("--experiment only supports `brand-token-normalization`.");
+  }
+  const resolvedOutputPath = outputPath ?? DEFAULT_OUTPUT_PATH;
+  if (resolvedOutputPath !== BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH) {
+    throw new Error(
+      `Brand-token normalization experiment output must be ${BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH}.`,
+    );
+  }
+  return {
+    mode: "brand-token-normalization-experiment",
+    outputPath: resolvedOutputPath,
+  };
 }
 
 function parseOutputPath(args: string[]): string | undefined {
