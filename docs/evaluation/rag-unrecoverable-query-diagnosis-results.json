@@ -1,0 +1,720 @@
+{
+  "diagnostic": {
+    "id": "rag-unrecoverable-query-diagnosis",
+    "description": "Read-only diagnosis of baseline answerable queries whose expected chunks are absent from Top-3.",
+    "targetQueryIds": ["para-003-a", "para-006-a", "para-012-b"],
+    "productionBehaviorChanged": false,
+    "retrievalCandidateExperiment": false,
+    "noDatabaseWrites": true
+  },
+  "inputs": {
+    "dataset": {
+      "path": "tests/fixtures/rag/retrieval-evaluation-dataset.json",
+      "sha256": "458e6958997a7838693c1ac96c102deee0c991fc4d2bd8a9abb3875b96461197"
+    },
+    "artifacts": {
+      "baseline": {
+        "path": "docs/evaluation/rag-retrieval-evaluation-results.json",
+        "sha256": "585ea2f125fcf4aa3e3415506cbce957ff436b851854477b1cc8b15af7124aa1"
+      },
+      "brandTokenNormalization": {
+        "path": "docs/evaluation/rag-brand-token-normalization-experiment-results.json",
+        "sha256": "c6f0bdbcc012374ce4f47a9cc1939d6deb8249eda419401e4497a20d3fef52d8"
+      },
+      "faqQuestionGate": {
+        "path": "docs/evaluation/rag-faq-question-gate-experiment-results.json",
+        "sha256": "85d44819bd4d37f707b8f048f646a00e90e586cef944e7c8abf7d9e2976aef69"
+      },
+      "faqQuestionReranker": {
+        "path": "docs/evaluation/rag-faq-question-reranker-experiment-results.json",
+        "sha256": "c05f08bc7f7a94399cb975eb5cf0aff140f30ce854b0d6f49dc4290e86e2b9bc"
+      }
+    }
+  },
+  "embeddingProfile": {
+    "id": "local-transformers-js:xenova-multilingual-e5-small:ae61bf0193ce3851dc8a45147e459b04ed783d8a:onnx-model-quantized:int8:v1",
+    "modelId": "Xenova/multilingual-e5-small",
+    "modelRevision": "ae61bf0193ce3851dc8a45147e459b04ed783d8a",
+    "artifact": "onnx/model_quantized.onnx",
+    "queryInputRecipe": "e5:query:v1",
+    "passageInputRecipe": "e5:passage:v1",
+    "normalized": true,
+    "similarity": "cosine via existing normalized embeddings"
+  },
+  "activeChunks": [
+    {
+      "chunkKey": "mein-konto:v1:chunk-001",
+      "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+      "answer": "Im Login-Bereich unter „Kundenkonto“ können Sie das Registrierungsformular ausfüllen und ein Konto erstellen. Sie können Ihr Konto auch während Ihrer ersten Bestellung einrichten. Nach der Registrierung sind Sie sofort in Ihrem Konto angemeldet und können dort Ihre Angaben prüfen. Im Anschluss an Ihre Registrierung erhalten Sie eine Bestätigungs-E-Mail und können sich danach mit Ihrer E-Mail-Adresse und Ihrem persönlichen Passwort anmelden."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-002",
+      "canonicalQuestion": "Welche Vorteile bietet mir ein Konto?",
+      "answer": "Mit einem Konto genießen Sie die folgenden Vorteile:\n• Sie können Ihr Passwort und Ihre E-Mail-Adresse für die Anmeldung im Konto jederzeit selbst ändern.\n• Sie können Onlinebestellungen einsehen, inklusive Sendungsverfolgung und Onlinerechnung.\n• Sie können bei Bedarf das Rücksendeetikett zu Ihrer Bestellung selbstständig erstellen und drucken.\n• Sie können mehrere Lieferadressen hinterlegen. Ihre persönlichen Daten sind für zukünftige Bestellungen direkt gespeichert.\n• Sie können prüfen, wie viel Guthaben Sie auf Ihrem Warengutschein haben.\n• Sie können sich bequem zu unserem Newsletter an- und abmelden."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-003",
+      "canonicalQuestion": "Wo finde ich meine Kundennummer?",
+      "answer": "Ihre Kundennummer finden Sie innerhalb Ihres Kontos im Bereich „Persönliche Angaben“ sowie oben rechts auf Ihrer Rechnung."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-004",
+      "canonicalQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+      "answer": "Wenn Sie Ihre E-Mail-Adresse ändern möchten, können Sie innerhalb Ihres Kontos im Bereich „E-Mail-Adresse ändern“ ganz einfach eine neue E-Mail-Adresse hinterlegen."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-005",
+      "canonicalQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+      "answer": "Wenn Sie Ihr Passwort ändern möchten, können Sie innerhalb Ihres Kontos im Bereich „Passwort ändern“ ein neues Passwort hinterlegen. Bitte achten Sie darauf, ein möglichst kompliziertes Passwort zu vergeben und dieses nicht für mehrere Konten zu verwenden."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-006",
+      "canonicalQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+      "answer": "Falls Sie Ihr Passwort vergessen haben, klicken Sie bitte im Login-Bereich oder hier auf den Link Passwort vergessen und tragen Ihre im Konto hinterlegte E-Mail-Adresse ein. Nachdem Sie den Button „E-Mail absenden“ angeklickt haben, erhalten Sie umgehend eine E-Mail, über die Sie ein neues Passwort vergeben können."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-007",
+      "canonicalQuestion": "Wie nutze ich die Merkliste?",
+      "answer": "Auf der Merkliste können Sie beliebig viele Artikel speichern, um sie bei einem späteren Besuch in unserem Onlineshop sofort wiederzufinden. Verwenden Sie hierzu den Button „Merken“, den Sie unterhalb des Bestellbuttons an jedem Produkt finden. Alternativ können Sie auch Produkte aus dem Warenkorb auf die Merkliste verschieben. Die Liste ist so lange aktiv, wie die Cookies in Ihrem Browser nicht gelöscht werden. Wenn Sie mit Ihrem Konto angemeldet sind, wird die Merkliste im Konto gespeichert und Sie können diese auch bei einem Besuch von einem anderen Gerät oder Browser aus wieder aufrufen."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-008",
+      "canonicalQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+      "answer": "Sie können Ihre Merkliste mit einem Link zu einer „Wunschliste“ mit anderen teilen. Klicken Sie dazu in der geöffneten Merkliste auf den Button „Merkliste mit anderen teilen“. Dadurch wird eine neue Wunschliste mit den Artikeln von Ihrer Merkliste zum Zeitpunkt des Teilens und ein dazugehöriger Link erstellt. Es öffnet sich ein Dialogfeld, in dem Sie den Link kopieren können. Je nach verwendetem Browser können Sie zudem eine App zum Teilen des Links auswählen.\nBitte beachten Sie:Die geteilte Wunschliste kann nach dem Versenden an die Empfänger nicht von Ihnen geändert oder vor Ablauf der Gültigkeitsdauer des Links zurückgerufen werden. Ab Erstellung des Links bleibt die Wunschliste für einen Zeitraum von 6 Monaten aktiv und wird danach gelöscht.\nÄnderungen an Ihrer persönlichen Merkliste werden nicht an die Empfänger der geteilten Wunschliste übermittelt. Es erfolgt bei einem Kauf eines Artikels von der geteilten Wunschliste keine Information an Sie oder die Empfänger. Ein gekaufter Artikel wird nicht von der geteilten Wunschliste oder Ihrer persönlichen Merkliste entfernt."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-009",
+      "canonicalQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+      "answer": "Die geteilte Wunschliste zeigt den Stand zum Zeitpunkt des Teilens der Merkliste durch den Absender. Änderungen durch Sie, den Absender oder andere Empfänger sind nicht möglich. Sie können Artikel von der Wunschliste in Ihren Warenkorb legen und bestellen. Der Artikel wird dadurch nicht von der Wunschliste gelöscht.\nWenn Sie einen Artikel von der geteilten Wunschliste auf Ihre persönliche Merkliste setzen wollen, müssen Sie den Artikel zunächst in Ihren Warenkorb legen und von dort auf die Merkliste verschieben.\nBitte beachten Sie:Ab Erstellung des Links zu einer geteilten Merkliste sind der Link und die geteilte Merkliste 6 Monate gültig. Nach diesem Zeitraum wird die mit Ihnen geteilte Merkliste gelöscht und kann von Ihnen nicht mehr aufgerufen werden."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-010",
+      "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+      "answer": "Wenn Sie bereits als Kund*in registriert sind, haben Sie die Möglichkeit, den Newsletter innerhalb Ihres Kontos im Bereich „Newsletter“ zu abonnieren. Sollten Sie kein Konto haben, können Sie entweder das Formular im unteren Bereich unserer Webseite nutzen oder sich hier anmelden."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-011",
+      "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+      "answer": "Um sich von unserem Newsletter abzumelden, nutzen Sie bitte die Option „Newsletter abbestellen“ am Ende des Newsletters. Wenn Sie bereits als Kund*in registriert sind, haben Sie außerdem die Möglichkeit, den Newsletter innerhalb Ihres Kontos im Bereich „Newsletter“ abzubestellen. Sollten Sie Probleme bei der Abmeldung haben, wenden Sie sich gern an unseren Customer Service."
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-012",
+      "canonicalQuestion": "Wie kann ich mein Kundenkonto löschen?",
+      "answer": "Wenden Sie sich bitte per E-Mail an unseren Customer Service. Für eine schnelle Bearbeitung schreiben Sie bitte als Betreff „Löschung Kundenkonto“."
+    }
+  ],
+  "targetDiagnostics": [
+    {
+      "id": "para-003-a",
+      "query": "Wo kann ich meine Manufactum Kundennummer nachsehen?",
+      "expectedChunk": {
+        "chunkKey": "mein-konto:v1:chunk-003",
+        "canonicalQuestion": "Wo finde ich meine Kundennummer?",
+        "relevantAnswerContent": "Ihre Kundennummer finden Sie innerhalb Ihres Kontos im Bereich „Persönliche Angaben“ sowie oben rechts auf Ihrer Rechnung."
+      },
+      "baselineTop3": [
+        {
+          "rank": 1,
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "score": 0.883672
+        },
+        {
+          "rank": 2,
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "score": 0.883096
+        },
+        {
+          "rank": 3,
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "score": 0.865988
+        }
+      ],
+      "fullRanking": {
+        "expectedChunkRank": 4,
+        "expectedChunkScore": 0.860018,
+        "top1Score": 0.883672,
+        "top1MinusExpectedScoreGap": 0.023654,
+        "rank3MinusExpectedScoreGap": 0.00597,
+        "orderedRanking": [
+          {
+            "rank": 1,
+            "chunkKey": "mein-konto:v1:chunk-001",
+            "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+            "score": 0.883672
+          },
+          {
+            "rank": 2,
+            "chunkKey": "mein-konto:v1:chunk-010",
+            "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+            "score": 0.883096
+          },
+          {
+            "rank": 3,
+            "chunkKey": "mein-konto:v1:chunk-011",
+            "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+            "score": 0.865988
+          },
+          {
+            "rank": 4,
+            "chunkKey": "mein-konto:v1:chunk-003",
+            "canonicalQuestion": "Wo finde ich meine Kundennummer?",
+            "score": 0.860018
+          },
+          {
+            "rank": 5,
+            "chunkKey": "mein-konto:v1:chunk-007",
+            "canonicalQuestion": "Wie nutze ich die Merkliste?",
+            "score": 0.813325
+          },
+          {
+            "rank": 6,
+            "chunkKey": "mein-konto:v1:chunk-012",
+            "canonicalQuestion": "Wie kann ich mein Kundenkonto löschen?",
+            "score": 0.808748
+          },
+          {
+            "rank": 7,
+            "chunkKey": "mein-konto:v1:chunk-008",
+            "canonicalQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+            "score": 0.79904
+          },
+          {
+            "rank": 8,
+            "chunkKey": "mein-konto:v1:chunk-009",
+            "canonicalQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+            "score": 0.784306
+          },
+          {
+            "rank": 9,
+            "chunkKey": "mein-konto:v1:chunk-006",
+            "canonicalQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+            "score": 0.781362
+          },
+          {
+            "rank": 10,
+            "chunkKey": "mein-konto:v1:chunk-002",
+            "canonicalQuestion": "Welche Vorteile bietet mir ein Konto?",
+            "score": 0.776141
+          },
+          {
+            "rank": 11,
+            "chunkKey": "mein-konto:v1:chunk-005",
+            "canonicalQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+            "score": 0.756808
+          },
+          {
+            "rank": 12,
+            "chunkKey": "mein-konto:v1:chunk-004",
+            "canonicalQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+            "score": 0.75204
+          }
+        ]
+      },
+      "sameExpectedChunkQueries": [
+        {
+          "id": "exact-003",
+          "category": "exact",
+          "query": "Wo finde ich meine Kundennummer?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-003",
+          "baselineTop1Score": 0.935719,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.935719,
+          "successfulTop1": true
+        },
+        {
+          "id": "para-003-a",
+          "category": "paraphrase",
+          "query": "Wo kann ich meine Manufactum Kundennummer nachsehen?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.883672,
+          "expectedChunkRankInFullRanking": 4,
+          "expectedChunkScoreInFullRanking": 0.860018,
+          "successfulTop1": false
+        },
+        {
+          "id": "para-003-b",
+          "category": "paraphrase",
+          "query": "An welcher Stelle steht meine Kundennummer?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-003",
+          "baselineTop1Score": 0.913945,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.913945,
+          "successfulTop1": true
+        }
+      ],
+      "labelValidity": {
+        "expectedDirectlyAnswers": true,
+        "anotherChunkCouldReasonablyAnswer": false,
+        "ambiguousWithoutAdditionalContext": false,
+        "assessment": "The query asks where to look up the customer number; the expected Kundennummer FAQ directly answers that location. Registration and newsletter chunks do not answer it.",
+        "questionableLabel": false
+      },
+      "likelyCauses": [
+        {
+          "cause": "competing chunks have stronger but misleading semantic overlap",
+          "evidence": [
+            "Baseline Top-3 is registration/newsletter chunks, all with standalone `Manufactum` in their canonical questions.",
+            "The successful same-label paraphrase `para-003-b` omits `Manufactum` and ranks the Kundennummer chunk first.",
+            "Rejected brand-token normalization moved this query to the expected chunk on the frozen dataset."
+          ],
+          "counterevidence": [
+            "The query contains the strong domain term `Kundennummer`, and the exact query for the same chunk succeeds."
+          ],
+          "confidence": "high",
+          "falsifier": "If full rankings for many brand-containing Kundennummer queries still preferred chunk 003 without brand removal, the brand-overlap explanation would weaken."
+        },
+        {
+          "cause": "embedding-model limitation",
+          "evidence": [
+            "The model ranks several semantically unrelated brand-bearing account/newsletter chunks above a chunk with the exact `Kundennummer` concept."
+          ],
+          "counterevidence": [
+            "The same model retrieves chunk 003 for the exact query and for a paraphrase without `Manufactum`."
+          ],
+          "confidence": "medium",
+          "falsifier": "A second embedding model with the same unchanged query and passages showing the same displacement would make this less model-specific."
+        }
+      ],
+      "previousExperimentEvidence": {
+        "faqQuestionGate": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "top1QuestionMatchScore": 0.852907,
+          "interpretation": "The gate scored only the unchanged wrong Top-1 candidate, so it could not promote an expected chunk that was absent from Top-3."
+        },
+        "top3Reranker": {
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-010",
+          "candidateTop1FaqQuestionScore": 0.853079,
+          "interpretation": "The Top-3 reranker could only reorder the original three wrong candidates; it could not recover an expected chunk absent from Top-3."
+        },
+        "brandTokenNormalization": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.883672,
+          "baselineExpectedRank": null,
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-003",
+          "candidateTop1Score": 0.918408,
+          "candidateExpectedRank": 1,
+          "interpretation": "Brand-token normalization recovered this target on the frozen dataset, which supports brand-token displacement as a diagnosis but remains rejected because it caused regressions elsewhere."
+        }
+      }
+    },
+    {
+      "id": "para-006-a",
+      "query": "Was mache ich, wenn ich mein Manufactum Passwort vergessen habe?",
+      "expectedChunk": {
+        "chunkKey": "mein-konto:v1:chunk-006",
+        "canonicalQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+        "relevantAnswerContent": "Falls Sie Ihr Passwort vergessen haben, klicken Sie bitte im Login-Bereich oder hier auf den Link Passwort vergessen und tragen Ihre im Konto hinterlegte E-Mail-Adresse ein. Nachdem Sie den Button „E-Mail absenden“ angeklickt haben, erhalten Sie umgehend eine E-Mail, über die Sie ein neues Passwort vergeben können."
+      },
+      "baselineTop3": [
+        {
+          "rank": 1,
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "score": 0.88455
+        },
+        {
+          "rank": 2,
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "score": 0.863152
+        },
+        {
+          "rank": 3,
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "score": 0.862152
+        }
+      ],
+      "fullRanking": {
+        "expectedChunkRank": 4,
+        "expectedChunkScore": 0.861415,
+        "top1Score": 0.88455,
+        "top1MinusExpectedScoreGap": 0.023135,
+        "rank3MinusExpectedScoreGap": 0.000737,
+        "orderedRanking": [
+          {
+            "rank": 1,
+            "chunkKey": "mein-konto:v1:chunk-001",
+            "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+            "score": 0.88455
+          },
+          {
+            "rank": 2,
+            "chunkKey": "mein-konto:v1:chunk-010",
+            "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+            "score": 0.863152
+          },
+          {
+            "rank": 3,
+            "chunkKey": "mein-konto:v1:chunk-011",
+            "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+            "score": 0.862152
+          },
+          {
+            "rank": 4,
+            "chunkKey": "mein-konto:v1:chunk-006",
+            "canonicalQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+            "score": 0.861415
+          },
+          {
+            "rank": 5,
+            "chunkKey": "mein-konto:v1:chunk-005",
+            "canonicalQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+            "score": 0.817953
+          },
+          {
+            "rank": 6,
+            "chunkKey": "mein-konto:v1:chunk-007",
+            "canonicalQuestion": "Wie nutze ich die Merkliste?",
+            "score": 0.812319
+          },
+          {
+            "rank": 7,
+            "chunkKey": "mein-konto:v1:chunk-002",
+            "canonicalQuestion": "Welche Vorteile bietet mir ein Konto?",
+            "score": 0.802858
+          },
+          {
+            "rank": 8,
+            "chunkKey": "mein-konto:v1:chunk-012",
+            "canonicalQuestion": "Wie kann ich mein Kundenkonto löschen?",
+            "score": 0.794188
+          },
+          {
+            "rank": 9,
+            "chunkKey": "mein-konto:v1:chunk-008",
+            "canonicalQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+            "score": 0.792529
+          },
+          {
+            "rank": 10,
+            "chunkKey": "mein-konto:v1:chunk-009",
+            "canonicalQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+            "score": 0.788631
+          },
+          {
+            "rank": 11,
+            "chunkKey": "mein-konto:v1:chunk-003",
+            "canonicalQuestion": "Wo finde ich meine Kundennummer?",
+            "score": 0.781104
+          },
+          {
+            "rank": 12,
+            "chunkKey": "mein-konto:v1:chunk-004",
+            "canonicalQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+            "score": 0.752009
+          }
+        ]
+      },
+      "sameExpectedChunkQueries": [
+        {
+          "id": "exact-006",
+          "category": "exact",
+          "query": "Ich habe mein Passwort vergessen, was kann ich tun?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-006",
+          "baselineTop1Score": 0.919936,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.919936,
+          "successfulTop1": true
+        },
+        {
+          "id": "para-006-a",
+          "category": "paraphrase",
+          "query": "Was mache ich, wenn ich mein Manufactum Passwort vergessen habe?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.88455,
+          "expectedChunkRankInFullRanking": 4,
+          "expectedChunkScoreInFullRanking": 0.861415,
+          "successfulTop1": false
+        },
+        {
+          "id": "para-006-b",
+          "category": "paraphrase",
+          "query": "Wie bekomme ich wieder Zugriff, wenn mir mein Passwort nicht mehr einfällt?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-006",
+          "baselineTop1Score": 0.872834,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.872834,
+          "successfulTop1": true
+        }
+      ],
+      "labelValidity": {
+        "expectedDirectlyAnswers": true,
+        "anotherChunkCouldReasonablyAnswer": false,
+        "ambiguousWithoutAdditionalContext": false,
+        "assessment": "The query asks what to do after forgetting a password; the expected forgotten-password FAQ directly answers that recovery path. Registration/newsletter chunks do not answer password reset.",
+        "questionableLabel": false
+      },
+      "likelyCauses": [
+        {
+          "cause": "competing chunks have stronger but misleading semantic overlap",
+          "evidence": [
+            "Baseline Top-3 is again brand-bearing registration/newsletter chunks, not password chunks.",
+            "The exact forgotten-password query and the non-brand paraphrase both retrieve the expected chunk first.",
+            "Rejected brand-token normalization moved this query to the expected chunk on the frozen dataset."
+          ],
+          "counterevidence": [
+            "The query contains `Passwort vergessen`, which should strongly match the expected canonical FAQ question."
+          ],
+          "confidence": "high",
+          "falsifier": "If brand-containing forgotten-password paraphrases were added and consistently ranked chunk 006 first, the brand-token displacement diagnosis would weaken."
+        },
+        {
+          "cause": "missing semantic signal in the query",
+          "evidence": [
+            "The query asks broadly `Was mache ich` and includes the brand token, while the expected canonical question starts with `Ich habe mein Passwort vergessen`."
+          ],
+          "counterevidence": [
+            "`Passwort vergessen` is still explicit and should be sufficient; the failure is not caused by absent topic vocabulary alone."
+          ],
+          "confidence": "low",
+          "falsifier": "A near-identical query without `Manufactum` ranking correctly would show the signal is present and the brand token is the larger issue."
+        }
+      ],
+      "previousExperimentEvidence": {
+        "faqQuestionGate": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "top1QuestionMatchScore": 0.859037,
+          "interpretation": "The gate scored only the unchanged wrong Top-1 candidate, so it could not promote an expected chunk that was absent from Top-3."
+        },
+        "top3Reranker": {
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-011",
+          "candidateTop1FaqQuestionScore": 0.861078,
+          "interpretation": "The Top-3 reranker could only reorder the original three wrong candidates; it could not recover an expected chunk absent from Top-3."
+        },
+        "brandTokenNormalization": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.88455,
+          "baselineExpectedRank": null,
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-006",
+          "candidateTop1Score": 0.904318,
+          "candidateExpectedRank": 1,
+          "interpretation": "Brand-token normalization recovered this target on the frozen dataset, which supports brand-token displacement as a diagnosis but remains rejected because it caused regressions elsewhere."
+        }
+      }
+    },
+    {
+      "id": "para-012-b",
+      "query": "Kann ich mein Manufactum Konto löschen lassen?",
+      "expectedChunk": {
+        "chunkKey": "mein-konto:v1:chunk-012",
+        "canonicalQuestion": "Wie kann ich mein Kundenkonto löschen?",
+        "relevantAnswerContent": "Wenden Sie sich bitte per E-Mail an unseren Customer Service. Für eine schnelle Bearbeitung schreiben Sie bitte als Betreff „Löschung Kundenkonto“."
+      },
+      "baselineTop3": [
+        {
+          "rank": 1,
+          "chunkKey": "mein-konto:v1:chunk-001",
+          "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+          "score": 0.88185
+        },
+        {
+          "rank": 2,
+          "chunkKey": "mein-konto:v1:chunk-011",
+          "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+          "score": 0.881697
+        },
+        {
+          "rank": 3,
+          "chunkKey": "mein-konto:v1:chunk-010",
+          "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+          "score": 0.881225
+        }
+      ],
+      "fullRanking": {
+        "expectedChunkRank": 4,
+        "expectedChunkScore": 0.858158,
+        "top1Score": 0.88185,
+        "top1MinusExpectedScoreGap": 0.023692,
+        "rank3MinusExpectedScoreGap": 0.023067,
+        "orderedRanking": [
+          {
+            "rank": 1,
+            "chunkKey": "mein-konto:v1:chunk-001",
+            "canonicalQuestion": "Wie kann ich mich bei Manufactum registrieren?",
+            "score": 0.88185
+          },
+          {
+            "rank": 2,
+            "chunkKey": "mein-konto:v1:chunk-011",
+            "canonicalQuestion": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+            "score": 0.881697
+          },
+          {
+            "rank": 3,
+            "chunkKey": "mein-konto:v1:chunk-010",
+            "canonicalQuestion": "Wie kann ich den Manufactum Newsletter abonnieren?",
+            "score": 0.881225
+          },
+          {
+            "rank": 4,
+            "chunkKey": "mein-konto:v1:chunk-012",
+            "canonicalQuestion": "Wie kann ich mein Kundenkonto löschen?",
+            "score": 0.858158
+          },
+          {
+            "rank": 5,
+            "chunkKey": "mein-konto:v1:chunk-007",
+            "canonicalQuestion": "Wie nutze ich die Merkliste?",
+            "score": 0.825966
+          },
+          {
+            "rank": 6,
+            "chunkKey": "mein-konto:v1:chunk-009",
+            "canonicalQuestion": "Wie funktioniert die mit mir geteilte Wunschliste?",
+            "score": 0.808343
+          },
+          {
+            "rank": 7,
+            "chunkKey": "mein-konto:v1:chunk-006",
+            "canonicalQuestion": "Ich habe mein Passwort vergessen, was kann ich tun?",
+            "score": 0.807889
+          },
+          {
+            "rank": 8,
+            "chunkKey": "mein-konto:v1:chunk-002",
+            "canonicalQuestion": "Welche Vorteile bietet mir ein Konto?",
+            "score": 0.807707
+          },
+          {
+            "rank": 9,
+            "chunkKey": "mein-konto:v1:chunk-008",
+            "canonicalQuestion": "Kann ich meine Merkliste mit anderen teilen?",
+            "score": 0.806004
+          },
+          {
+            "rank": 10,
+            "chunkKey": "mein-konto:v1:chunk-005",
+            "canonicalQuestion": "Ich möchte mein Passwort ändern, was kann ich tun?",
+            "score": 0.793843
+          },
+          {
+            "rank": 11,
+            "chunkKey": "mein-konto:v1:chunk-003",
+            "canonicalQuestion": "Wo finde ich meine Kundennummer?",
+            "score": 0.789873
+          },
+          {
+            "rank": 12,
+            "chunkKey": "mein-konto:v1:chunk-004",
+            "canonicalQuestion": "Wie kann ich meine E-Mail-Adresse ändern?",
+            "score": 0.771054
+          }
+        ]
+      },
+      "sameExpectedChunkQueries": [
+        {
+          "id": "exact-012",
+          "category": "exact",
+          "query": "Wie kann ich mein Kundenkonto löschen?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-012",
+          "baselineTop1Score": 0.922879,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.922879,
+          "successfulTop1": true
+        },
+        {
+          "id": "para-012-a",
+          "category": "paraphrase",
+          "query": "Wie entferne ich mein Kundenkonto dauerhaft?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-012",
+          "baselineTop1Score": 0.857676,
+          "expectedChunkRankInFullRanking": 1,
+          "expectedChunkScoreInFullRanking": 0.857676,
+          "successfulTop1": true
+        },
+        {
+          "id": "para-012-b",
+          "category": "paraphrase",
+          "query": "Kann ich mein Manufactum Konto löschen lassen?",
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.88185,
+          "expectedChunkRankInFullRanking": 4,
+          "expectedChunkScoreInFullRanking": 0.858158,
+          "successfulTop1": false
+        }
+      ],
+      "labelValidity": {
+        "expectedDirectlyAnswers": true,
+        "anotherChunkCouldReasonablyAnswer": false,
+        "ambiguousWithoutAdditionalContext": true,
+        "assessment": "`löschen lassen` is slightly service-oriented wording, but the expected account-deletion FAQ is still the direct answer. The registration/newsletter chunks do not answer deletion.",
+        "questionableLabel": false
+      },
+      "likelyCauses": [
+        {
+          "cause": "competing chunk has stronger but misleading semantic overlap",
+          "evidence": [
+            "Baseline Top-3 is registration/newsletter chunks with `Manufactum`; the account-deletion chunk is outside Top-3.",
+            "The exact deletion query and the non-brand deletion paraphrase retrieve the expected chunk first.",
+            "Rejected brand-token normalization moved this query to the expected chunk on the frozen dataset."
+          ],
+          "counterevidence": [
+            "The query contains both `Konto` and `löschen`, matching the expected canonical question closely."
+          ],
+          "confidence": "high",
+          "falsifier": "If multiple `Manufactum Konto löschen` variants ranked chunk 012 first under baseline retrieval, this diagnosis would not hold."
+        },
+        {
+          "cause": "ambiguous or underspecified user wording",
+          "evidence": [
+            "`löschen lassen` can imply a service or human-assisted request rather than self-service account deletion."
+          ],
+          "counterevidence": [
+            "Among the 12 active chunks, only the account-deletion FAQ directly answers deletion; registration/newsletter chunks are not reasonable answers."
+          ],
+          "confidence": "low",
+          "falsifier": "If an approved source later contains a separate support-assisted deletion FAQ, the current label may need reassessment."
+        }
+      ],
+      "previousExperimentEvidence": {
+        "faqQuestionGate": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "top1QuestionMatchScore": 0.853362,
+          "interpretation": "The gate scored only the unchanged wrong Top-1 candidate, so it could not promote an expected chunk that was absent from Top-3."
+        },
+        "top3Reranker": {
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-011",
+          "candidateTop1FaqQuestionScore": 0.862074,
+          "interpretation": "The Top-3 reranker could only reorder the original three wrong candidates; it could not recover an expected chunk absent from Top-3."
+        },
+        "brandTokenNormalization": {
+          "baselineTop1ChunkKey": "mein-konto:v1:chunk-001",
+          "baselineTop1Score": 0.88185,
+          "baselineExpectedRank": null,
+          "candidateTop1ChunkKey": "mein-konto:v1:chunk-012",
+          "candidateTop1Score": 0.905489,
+          "candidateExpectedRank": 1,
+          "interpretation": "Brand-token normalization recovered this target on the frozen dataset, which supports brand-token displacement as a diagnosis but remains rejected because it caused regressions elsewhere."
+        }
+      }
+    }
+  ],
+  "crossExperimentConclusions": {
+    "faqGate": "The FAQ-question gate cannot correct these failures because it keeps baseline Top-1 fixed; it can only accept or reject the already-wrong chunk.",
+    "top3Reranker": "The Top-3 reranker cannot correct these three failures because each expected chunk is absent from the original Top-3.",
+    "brandTokenNormalization": "Brand-token normalization recovered all three target failures in the rejected experiment, weakening explanations based only on bad labels or missing answer content. It was still rejected because it regressed other answerable queries.",
+    "weakenedHypotheses": [
+      "The expected chunks are not missing from storage: all are active and rank in the full 12-chunk list.",
+      "FAQ-question reranking over only Top-3 is insufficient: the expected chunks are outside the candidate set.",
+      "A pure answerability gate is the wrong mechanism for these ranking failures."
+    ],
+    "targetCount": 3
+  },
+  "overfittingAssessment": {
+    "risk": "high",
+    "evidence": [
+      "The same 52-query frozen dataset has already been used for baseline analysis and three rejected experiments.",
+      "Brand-token normalization fixes these three target failures on this dataset but regresses other labeled queries.",
+      "Further tuning on the same labels would likely optimize around known failures rather than generalize."
+    ],
+    "requirementBeforeFurtherTuning": "Create a separate development set and a held-out validation set before selecting or tuning another retrieval change."
+  },
+  "recommendedSmallestNextExperiment": {
+    "recommendation": "Build a small offline query-ablation diagnostic for brand-token sensitivity on a development split only, measuring whether standalone brand tokens cause systematic rank displacement before proposing any production candidate.",
+    "implementedHere": false
+  }
+}
