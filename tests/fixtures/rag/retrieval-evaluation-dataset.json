@@ -1,0 +1,314 @@
+[
+  {
+    "id": "exact-001",
+    "category": "exact",
+    "query": "Wie kann ich mich bei Manufactum registrieren?",
+    "expectedResult": "mein-konto:v1:chunk-001"
+  },
+  {
+    "id": "exact-002",
+    "category": "exact",
+    "query": "Welche Vorteile bietet mir ein Konto?",
+    "expectedResult": "mein-konto:v1:chunk-002"
+  },
+  {
+    "id": "exact-003",
+    "category": "exact",
+    "query": "Wo finde ich meine Kundennummer?",
+    "expectedResult": "mein-konto:v1:chunk-003"
+  },
+  {
+    "id": "exact-004",
+    "category": "exact",
+    "query": "Wie kann ich meine E-Mail-Adresse ändern?",
+    "expectedResult": "mein-konto:v1:chunk-004"
+  },
+  {
+    "id": "exact-005",
+    "category": "exact",
+    "query": "Ich möchte mein Passwort ändern, was kann ich tun?",
+    "expectedResult": "mein-konto:v1:chunk-005"
+  },
+  {
+    "id": "exact-006",
+    "category": "exact",
+    "query": "Ich habe mein Passwort vergessen, was kann ich tun?",
+    "expectedResult": "mein-konto:v1:chunk-006"
+  },
+  {
+    "id": "exact-007",
+    "category": "exact",
+    "query": "Wie nutze ich die Merkliste?",
+    "expectedResult": "mein-konto:v1:chunk-007"
+  },
+  {
+    "id": "exact-008",
+    "category": "exact",
+    "query": "Kann ich meine Merkliste mit anderen teilen?",
+    "expectedResult": "mein-konto:v1:chunk-008"
+  },
+  {
+    "id": "exact-009",
+    "category": "exact",
+    "query": "Wie funktioniert die mit mir geteilte Wunschliste?",
+    "expectedResult": "mein-konto:v1:chunk-009"
+  },
+  {
+    "id": "exact-010",
+    "category": "exact",
+    "query": "Wie kann ich den Manufactum Newsletter abonnieren?",
+    "expectedResult": "mein-konto:v1:chunk-010"
+  },
+  {
+    "id": "exact-011",
+    "category": "exact",
+    "query": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+    "expectedResult": "mein-konto:v1:chunk-011"
+  },
+  {
+    "id": "exact-012",
+    "category": "exact",
+    "query": "Wie kann ich mein Kundenkonto löschen?",
+    "expectedResult": "mein-konto:v1:chunk-012"
+  },
+  {
+    "id": "para-001-a",
+    "category": "paraphrase",
+    "query": "Wo erstelle ich ein neues Manufactum Kundenkonto?",
+    "expectedResult": "mein-konto:v1:chunk-001"
+  },
+  {
+    "id": "para-001-b",
+    "category": "paraphrase",
+    "query": "Wie lege ich mir bei Manufactum ein Benutzerkonto an?",
+    "expectedResult": "mein-konto:v1:chunk-001"
+  },
+  {
+    "id": "para-002-a",
+    "category": "paraphrase",
+    "query": "Was bringt mir ein persönliches Kundenkonto?",
+    "expectedResult": "mein-konto:v1:chunk-002"
+  },
+  {
+    "id": "para-002-b",
+    "category": "paraphrase",
+    "query": "Welche Funktionen habe ich, wenn ich ein Konto nutze?",
+    "expectedResult": "mein-konto:v1:chunk-002"
+  },
+  {
+    "id": "para-003-a",
+    "category": "paraphrase",
+    "query": "Wo kann ich meine Manufactum Kundennummer nachsehen?",
+    "expectedResult": "mein-konto:v1:chunk-003"
+  },
+  {
+    "id": "para-003-b",
+    "category": "paraphrase",
+    "query": "An welcher Stelle steht meine Kundennummer?",
+    "expectedResult": "mein-konto:v1:chunk-003"
+  },
+  {
+    "id": "para-004-a",
+    "category": "paraphrase",
+    "query": "Wie aktualisiere ich die E-Mail-Adresse in meinem Konto?",
+    "expectedResult": "mein-konto:v1:chunk-004"
+  },
+  {
+    "id": "para-004-b",
+    "category": "paraphrase",
+    "query": "Kann ich meine hinterlegte Mailadresse selbst ändern?",
+    "expectedResult": "mein-konto:v1:chunk-004"
+  },
+  {
+    "id": "para-005-a",
+    "category": "paraphrase",
+    "query": "Wie ändere ich mein aktuelles Passwort im Kundenkonto?",
+    "expectedResult": "mein-konto:v1:chunk-005"
+  },
+  {
+    "id": "para-005-b",
+    "category": "paraphrase",
+    "query": "Ich kenne mein Passwort noch, möchte es aber ersetzen.",
+    "expectedResult": "mein-konto:v1:chunk-005"
+  },
+  {
+    "id": "para-006-a",
+    "category": "paraphrase",
+    "query": "Was mache ich, wenn ich mein Manufactum Passwort vergessen habe?",
+    "expectedResult": "mein-konto:v1:chunk-006"
+  },
+  {
+    "id": "para-006-b",
+    "category": "paraphrase",
+    "query": "Wie bekomme ich wieder Zugriff, wenn mir mein Passwort nicht mehr einfällt?",
+    "expectedResult": "mein-konto:v1:chunk-006"
+  },
+  {
+    "id": "para-007-a",
+    "category": "paraphrase",
+    "query": "Wie speichere ich Artikel auf meiner Merkliste?",
+    "expectedResult": "mein-konto:v1:chunk-007"
+  },
+  {
+    "id": "para-007-b",
+    "category": "paraphrase",
+    "query": "Wofür ist die Merkliste gedacht und wie verwende ich sie?",
+    "expectedResult": "mein-konto:v1:chunk-007"
+  },
+  {
+    "id": "para-008-a",
+    "category": "paraphrase",
+    "query": "Kann ich meine gespeicherte Merkliste an jemand anderen senden?",
+    "expectedResult": "mein-konto:v1:chunk-008"
+  },
+  {
+    "id": "para-008-b",
+    "category": "paraphrase",
+    "query": "Wie teile ich meine Merkliste mit Freunden oder Familie?",
+    "expectedResult": "mein-konto:v1:chunk-008"
+  },
+  {
+    "id": "para-009-a",
+    "category": "paraphrase",
+    "query": "Was passiert, wenn mir jemand eine Wunschliste freigibt?",
+    "expectedResult": "mein-konto:v1:chunk-009"
+  },
+  {
+    "id": "para-009-b",
+    "category": "paraphrase",
+    "query": "Wie verwende ich eine Wunschliste, die eine andere Person mit mir geteilt hat?",
+    "expectedResult": "mein-konto:v1:chunk-009"
+  },
+  {
+    "id": "para-010-a",
+    "category": "paraphrase",
+    "query": "Wo melde ich mich für den Manufactum Newsletter an?",
+    "expectedResult": "mein-konto:v1:chunk-010"
+  },
+  {
+    "id": "para-010-b",
+    "category": "paraphrase",
+    "query": "Wie bestelle ich die Newsletter-E-Mails von Manufactum?",
+    "expectedResult": "mein-konto:v1:chunk-010"
+  },
+  {
+    "id": "para-011-a",
+    "category": "paraphrase",
+    "query": "Wie kann ich den Manufactum Newsletter wieder abbestellen?",
+    "expectedResult": "mein-konto:v1:chunk-011"
+  },
+  {
+    "id": "para-011-b",
+    "category": "paraphrase",
+    "query": "Ich möchte keine Newsletter mehr bekommen, was muss ich tun?",
+    "expectedResult": "mein-konto:v1:chunk-011"
+  },
+  {
+    "id": "para-012-a",
+    "category": "paraphrase",
+    "query": "Wie entferne ich mein Kundenkonto dauerhaft?",
+    "expectedResult": "mein-konto:v1:chunk-012"
+  },
+  {
+    "id": "para-012-b",
+    "category": "paraphrase",
+    "query": "Kann ich mein Manufactum Konto löschen lassen?",
+    "expectedResult": "mein-konto:v1:chunk-012"
+  },
+  {
+    "id": "hard-neg-001",
+    "category": "hard_negative",
+    "query": "Wie ändere ich meine Rechnungsadresse im Kundenkonto?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-002",
+    "category": "hard_negative",
+    "query": "Wo sehe ich den aktuellen Status meiner Bestellung?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-003",
+    "category": "hard_negative",
+    "query": "Kann ich im Konto eine gespeicherte Zahlungsart löschen?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-004",
+    "category": "hard_negative",
+    "query": "Wie ändere ich die Lieferadresse für eine bereits aufgegebene Bestellung?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-005",
+    "category": "hard_negative",
+    "query": "Wo lade ich eine Rechnung aus meinem Kundenkonto herunter?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-006",
+    "category": "hard_negative",
+    "query": "Wie kann ich meine Bestellhistorie im Konto löschen?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-007",
+    "category": "hard_negative",
+    "query": "Kann ich mehrere Kundenkonten zusammenführen lassen?",
+    "expectedResult": null
+  },
+  {
+    "id": "hard-neg-008",
+    "category": "hard_negative",
+    "query": "Wie aktiviere ich die Zwei-Faktor-Anmeldung für mein Konto?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-001",
+    "category": "irrelevant",
+    "query": "Ist der Artikel 123456 heute online verfügbar?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-002",
+    "category": "irrelevant",
+    "query": "Was kostet die gusseiserne Pfanne aktuell?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-003",
+    "category": "irrelevant",
+    "query": "Hat die Filiale München diese Kaffeemühle auf Lager?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-004",
+    "category": "irrelevant",
+    "query": "Kann ich einen Artikel in der Warenhausfiliale reservieren?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-005",
+    "category": "irrelevant",
+    "query": "Wie wird morgen das Wetter in Hamburg?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-006",
+    "category": "irrelevant",
+    "query": "Wer hat den letzten Fußball-Weltmeistertitel gewonnen?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-007",
+    "category": "irrelevant",
+    "query": "Welche Öffnungszeiten hat das Warenhaus in Berlin heute?",
+    "expectedResult": null
+  },
+  {
+    "id": "irrelevant-008",
+    "category": "irrelevant",
+    "query": "Wie storniere ich eine Tischreservierung in einem Restaurant?",
+    "expectedResult": null
+  }
+]
