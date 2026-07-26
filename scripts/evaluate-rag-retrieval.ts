@@ -18,6 +18,7 @@ type EvaluationQuery = {
 
 type QueryResult = EvaluationQuery & {
   answerable: boolean;
+  top1Content: string | null;
   top1ChunkKey: string | null;
   top1Score: number | null;
   top2ChunkKey: string | null;
@@ -39,6 +40,13 @@ type ExperimentQueryResult = QueryResult & {
 
 type QueryInputRecipeId = "baseline" | "experimental-manufactum-token-normalized";
 
+type QuestionGateResult = QueryResult & {
+  canonicalFaqQuestion: string | null;
+  questionMatchScore: number | null;
+};
+
+type QuestionGateThresholdSummary = ReturnType<typeof questionGateAtThreshold>;
+
 type QueryInputRecipe = {
   id: QueryInputRecipeId;
   description: string;
@@ -47,15 +55,19 @@ type QueryInputRecipe = {
 
 type CliOptions =
   | { mode: "baseline"; outputPath: string | undefined }
-  | { mode: "brand-token-normalization-experiment"; outputPath: string };
+  | { mode: "brand-token-normalization-experiment"; outputPath: string }
+  | { mode: "faq-question-gate-experiment"; outputPath: string };
 
 const DATASET_PATH = "tests/fixtures/rag/retrieval-evaluation-dataset.json";
 const DEFAULT_OUTPUT_PATH = "docs/evaluation/rag-retrieval-evaluation-results.json";
 const BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH =
   "docs/evaluation/rag-brand-token-normalization-experiment-results.json";
+const FAQ_QUESTION_GATE_EXPERIMENT_OUTPUT_PATH =
+  "docs/evaluation/rag-faq-question-gate-experiment-results.json";
 const MAX_CHUNKS = 3;
 const PROVISIONAL_THRESHOLD = 0.8;
 const COMPARISON_THRESHOLDS = [0.8, 0.85] as const;
+const QUESTION_GATE_THRESHOLDS = buildFixedThresholdSweep(50, 95, 1);
 const PRIMARY_CANARY_QUERY_IDS = ["para-003-a", "para-006-a", "para-012-b"] as const;
 const CATEGORIES: Category[] = ["exact", "paraphrase", "hard_negative", "irrelevant"];
 const EXPECTED_DATASET_COUNTS: Record<Category, number> = {
@@ -133,15 +145,16 @@ async function main(): Promise<void> {
     const endToEnd080 = endToEndAtThreshold(baselineResults, PROVISIONAL_THRESHOLD);
     verifyThreshold080(answerability080, endToEnd080);
 
-    const report =
-      cliOptions.mode === "baseline"
-        ? baselineReport(frozenDataset, datasetFile.sha256, baselineResults.map(stripRecipeResult))
-        : experimentReport(
-            frozenDataset,
-            datasetFile.sha256,
-            baselineResults,
-            await evaluateRecipe(frozenDataset, candidateRecipe, generator, store, model),
-          );
+    const report = await buildReportForMode({
+      cliOptions,
+      dataset: frozenDataset,
+      datasetSha256: datasetFile.sha256,
+      baselineResults,
+      candidateRecipe,
+      generator,
+      store,
+      model,
+    });
 
     if (cliOptions.outputPath !== undefined) {
       await fs.mkdir(path.dirname(cliOptions.outputPath), { recursive: true });
@@ -151,6 +164,45 @@ async function main(): Promise<void> {
   } finally {
     await pool.end();
   }
+}
+
+async function buildReportForMode(input: {
+  cliOptions: CliOptions;
+  dataset: readonly EvaluationQuery[];
+  datasetSha256: string;
+  baselineResults: readonly ExperimentQueryResult[];
+  candidateRecipe: QueryInputRecipe;
+  generator: TransformersE5SmallPassageEmbeddingGenerator;
+  store: PostgresRagDocumentStore;
+  model: ReturnType<typeof embeddingProfileModelRef>;
+}) {
+  if (input.cliOptions.mode === "baseline") {
+    return baselineReport(
+      input.dataset,
+      input.datasetSha256,
+      input.baselineResults.map(stripRecipeResult),
+    );
+  }
+  if (input.cliOptions.mode === "brand-token-normalization-experiment") {
+    return brandTokenExperimentReport(
+      input.dataset,
+      input.datasetSha256,
+      input.baselineResults,
+      await evaluateRecipe(
+        input.dataset,
+        input.candidateRecipe,
+        input.generator,
+        input.store,
+        input.model,
+      ),
+    );
+  }
+  return await faqQuestionGateExperimentReport(
+    input.dataset,
+    input.datasetSha256,
+    input.baselineResults.map(stripRecipeResult),
+    input.generator,
+  );
 }
 
 function baselineReport(
@@ -214,6 +266,7 @@ function stripRecipeResult(result: ExperimentQueryResult): QueryResult {
     query: result.query,
     expectedResult: result.expectedResult,
     answerable: result.answerable,
+    top1Content: result.top1Content,
     top1ChunkKey: result.top1ChunkKey,
     top1Score: result.top1Score,
     top2ChunkKey: result.top2ChunkKey,
@@ -228,7 +281,7 @@ function stripRecipeResult(result: ExperimentQueryResult): QueryResult {
   };
 }
 
-function experimentReport(
+function brandTokenExperimentReport(
   dataset: readonly EvaluationQuery[],
   datasetSha256: string,
   baselineResults: readonly ExperimentQueryResult[],
@@ -268,6 +321,414 @@ function experimentReport(
     ),
     currentlyCorrectRegressions: currentlyCorrectRegressions(baselineResults, candidateResults),
     decisionRule: decisionRule(baselineResults, candidateResults, COMPARISON_THRESHOLDS),
+  };
+}
+
+async function faqQuestionGateExperimentReport(
+  dataset: readonly EvaluationQuery[],
+  datasetSha256: string,
+  baselineResults: readonly QueryResult[],
+  generator: TransformersE5SmallPassageEmbeddingGenerator,
+) {
+  const questionGateResults = await addQuestionGateScores(baselineResults, generator);
+  const sweep = COMPARISON_THRESHOLDS.map((retrievalThreshold) => ({
+    retrievalThreshold: round(retrievalThreshold),
+    questionGateThresholdSweep: QUESTION_GATE_THRESHOLDS.map((questionGateThreshold) =>
+      questionGateAtThreshold(questionGateResults, retrievalThreshold, questionGateThreshold),
+    ),
+  }));
+  const fixedThreshold = selectQuestionGateThreshold(questionGateResults);
+  return {
+    experiment: {
+      id: "faq-question-gate",
+      description:
+        "Evaluation-only gate: keep baseline Top-1 ranking unchanged, then require the selected chunk's canonical FAQ question to pass a separate E5 query-vs-passage similarity threshold.",
+      productionBehaviorChanged: false,
+      productionThresholdChanged: false,
+      brandTokenNormalizationUsed: false,
+      outputPath: FAQ_QUESTION_GATE_EXPERIMENT_OUTPUT_PATH,
+    },
+    dataset: {
+      path: DATASET_PATH,
+      sha256: datasetSha256,
+      composition: summarizeDataset(dataset),
+      immutableDuringEvaluation: true,
+      loadedAndValidatedBeforeModelScoring: true,
+    },
+    embeddingProfile: {
+      id: RAG_EMBEDDING_PROFILE.id,
+      modelId: RAG_EMBEDDING_PROFILE.modelId,
+      modelRevision: RAG_EMBEDDING_PROFILE.modelRevision,
+      artifact: RAG_EMBEDDING_PROFILE.artifact,
+      dimension: RAG_EMBEDDING_PROFILE.dimension,
+      queryInputRecipe: RAG_EMBEDDING_PROFILE.queryInputRecipe,
+      questionInputRecipe: RAG_EMBEDDING_PROFILE.passageInputRecipe,
+    },
+    maxChunks: MAX_CHUNKS,
+    baselineRetrievalThresholds: COMPARISON_THRESHOLDS.map(round),
+    questionGateThresholdSweep: sweep,
+    baselineRankingUnchanged: rankingQuality(baselineResults),
+    questionMatchScoreDistributions: questionMatchScoreDistributions(questionGateResults),
+    selectedFixedThreshold: fixedThreshold,
+    threshold080:
+      fixedThreshold === null
+        ? null
+        : questionGateComparison(questionGateResults, 0.8, fixedThreshold.questionGateThreshold),
+    threshold085:
+      fixedThreshold === null
+        ? null
+        : questionGateComparison(questionGateResults, 0.85, fixedThreshold.questionGateThreshold),
+    inspectedBaselineFalseAccepts: inspectedBaselineFalseAccepts(questionGateResults, 0.8),
+    inspectedWrongAnswerableTop1: inspectedWrongAnswerableTop1(questionGateResults, 0.8),
+    previouslyCorrectRejectedBySelectedGate:
+      fixedThreshold === null
+        ? []
+        : previouslyCorrectRejected(questionGateResults, 0.8, fixedThreshold.questionGateThreshold),
+    decisionRule: faqQuestionGateDecisionRule(questionGateResults, COMPARISON_THRESHOLDS),
+    perQuery: questionGateResults.map(roundQuestionGateResult),
+  };
+}
+
+async function addQuestionGateScores(
+  baselineResults: readonly QueryResult[],
+  generator: TransformersE5SmallPassageEmbeddingGenerator,
+): Promise<QuestionGateResult[]> {
+  const faqQuestionEmbeddings = new Map<string, number[]>();
+  const results: QuestionGateResult[] = [];
+  for (const result of baselineResults) {
+    const canonicalFaqQuestion =
+      result.top1Content === null ? null : extractCanonicalFaqQuestion(result.top1Content);
+    let questionMatchScore: number | null = null;
+    if (canonicalFaqQuestion !== null) {
+      const cached = faqQuestionEmbeddings.get(canonicalFaqQuestion);
+      let faqQuestionEmbedding = cached;
+      if (faqQuestionEmbedding === undefined) {
+        faqQuestionEmbedding = (await generator.embedPassage(canonicalFaqQuestion)).embedding;
+        faqQuestionEmbeddings.set(canonicalFaqQuestion, faqQuestionEmbedding);
+      }
+      const queryEmbedding = await generator.embedQuery(result.query);
+      questionMatchScore = cosineSimilarity(queryEmbedding.embedding, faqQuestionEmbedding);
+    }
+    results.push({
+      ...result,
+      canonicalFaqQuestion,
+      questionMatchScore,
+    });
+  }
+  return results;
+}
+
+function extractCanonicalFaqQuestion(content: string): string {
+  const match = /^Frage:\s*(.*?)\n\nAntwort:/s.exec(content);
+  if (match?.[1] === undefined || match[1].trim().length === 0) {
+    throw new Error("Top-1 chunk content did not contain a canonical `Frage:` section.");
+  }
+  return match[1].trim();
+}
+
+function cosineSimilarity(left: readonly number[], right: readonly number[]): number {
+  if (left.length !== right.length) {
+    throw new Error(
+      `Cannot compare embeddings with different dimensions: ${String(left.length)} and ${String(right.length)}.`,
+    );
+  }
+  return left.reduce((sum, value, index) => sum + value * (right[index] ?? 0), 0);
+}
+
+function questionGateAtThreshold(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+) {
+  const correctAccepted = results.filter(
+    (result) =>
+      questionGateAccepted(result, retrievalThreshold, questionGateThreshold) && result.top1Correct,
+  ).length;
+  const wrongChunkAccepted = results.filter(
+    (result) =>
+      result.answerable &&
+      questionGateAccepted(result, retrievalThreshold, questionGateThreshold) &&
+      !result.top1Correct,
+  ).length;
+  const answerableAbstained = results.filter(
+    (result) =>
+      result.answerable && !questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const hardNegativeFalseAccepts = results.filter(
+    (result) =>
+      result.category === "hard_negative" &&
+      questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const irrelevantFalseAccepts = results.filter(
+    (result) =>
+      result.category === "irrelevant" &&
+      questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const falsePositive = hardNegativeFalseAccepts + irrelevantFalseAccepts;
+  const correctRejects = results.filter(
+    (result) =>
+      !result.answerable &&
+      !questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const truePositive = results.filter(
+    (result) =>
+      result.answerable && questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const falseNegative = results.filter(
+    (result) =>
+      result.answerable && !questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+  ).length;
+  const trueNegative = correctRejects;
+  return {
+    retrievalThreshold: round(retrievalThreshold),
+    questionGateThreshold: round(questionGateThreshold),
+    correctAccepted,
+    wrongChunkAccepted,
+    answerableAbstained,
+    hardNegativeFalseAccepts,
+    irrelevantFalseAccepts,
+    correctRejects,
+    truePositive,
+    falseNegative,
+    falsePositive,
+    trueNegative,
+    precision: ratio(truePositive, truePositive + falsePositive),
+    recall: ratio(truePositive, truePositive + falseNegative),
+    f1: f1(truePositive, falsePositive, falseNegative),
+  };
+}
+
+function questionGateComparison(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+) {
+  return {
+    baseline: baselineGateComparableAtThreshold(results, retrievalThreshold),
+    candidate: questionGateAtThreshold(results, retrievalThreshold, questionGateThreshold),
+    changedDecisions: changedQuestionGateDecisions(
+      results,
+      retrievalThreshold,
+      questionGateThreshold,
+    ),
+  };
+}
+
+function baselineGateComparableAtThreshold(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+) {
+  return {
+    ranking: rankingAtThreshold(results, retrievalThreshold),
+    answerability: answerabilityAtThreshold(results, retrievalThreshold),
+    endToEnd: endToEndAtThreshold(results, retrievalThreshold),
+  };
+}
+
+function questionGateAccepted(
+  result: QuestionGateResult,
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+): boolean {
+  return (
+    accepted(result, retrievalThreshold) &&
+    (result.questionMatchScore ?? -Infinity) >= questionGateThreshold
+  );
+}
+
+function changedQuestionGateDecisions(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+) {
+  return results
+    .filter(
+      (result) =>
+        accepted(result, retrievalThreshold) !==
+        questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+    )
+    .map((result) => ({
+      ...compactQuestionGateResult(result),
+      baselineDecision: decisionOutcome(result, retrievalThreshold),
+      candidateDecision: questionGateDecisionOutcome(
+        result,
+        retrievalThreshold,
+        questionGateThreshold,
+      ),
+    }));
+}
+
+function questionGateDecisionOutcome(
+  result: QuestionGateResult,
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+): string {
+  if (
+    result.answerable &&
+    questionGateAccepted(result, retrievalThreshold, questionGateThreshold) &&
+    result.top1Correct
+  ) {
+    return "correct_accepted";
+  }
+  if (
+    result.answerable &&
+    questionGateAccepted(result, retrievalThreshold, questionGateThreshold) &&
+    !result.top1Correct
+  ) {
+    return "wrong_chunk_accepted";
+  }
+  if (
+    result.answerable &&
+    !questionGateAccepted(result, retrievalThreshold, questionGateThreshold)
+  ) {
+    return "answerable_abstained";
+  }
+  if (
+    !result.answerable &&
+    questionGateAccepted(result, retrievalThreshold, questionGateThreshold)
+  ) {
+    return `${result.category}_false_accept`;
+  }
+  return "correct_reject";
+}
+
+function selectQuestionGateThreshold(
+  results: readonly QuestionGateResult[],
+): QuestionGateThresholdSummary | null {
+  const summaries = QUESTION_GATE_THRESHOLDS.map((threshold) =>
+    questionGateAtThreshold(results, 0.8, threshold),
+  );
+  return bestBy(summaries, "f1");
+}
+
+function faqQuestionGateDecisionRule(
+  results: readonly QuestionGateResult[],
+  retrievalThresholds: readonly number[],
+) {
+  const passingThresholds = QUESTION_GATE_THRESHOLDS.map((threshold) =>
+    faqQuestionGateDecisionRuleForThreshold(results, retrievalThresholds, threshold),
+  ).filter((row) => row.passes);
+  return {
+    mayProceedToLaterProductionDesignCheckpoint: passingThresholds.length > 0,
+    selectedThreshold: passingThresholds[0]?.questionGateThreshold ?? null,
+    passingThresholds,
+  };
+}
+
+function faqQuestionGateDecisionRuleForThreshold(
+  results: readonly QuestionGateResult[],
+  retrievalThresholds: readonly number[],
+  questionGateThreshold: number,
+) {
+  const checks = retrievalThresholds.map((retrievalThreshold) => {
+    const baselineEndToEnd = endToEndAtThreshold(results, retrievalThreshold);
+    const candidate = questionGateAtThreshold(results, retrievalThreshold, questionGateThreshold);
+    const baselineFalseAccepts = baselineEndToEnd.unanswerableIncorrectlyAccepted;
+    const candidateFalseAccepts =
+      candidate.hardNegativeFalseAccepts + candidate.irrelevantFalseAccepts;
+    return {
+      retrievalThreshold: round(retrievalThreshold),
+      falseAcceptsReducedAtLeast50Percent:
+        candidateFalseAccepts <= Math.floor(baselineFalseAccepts / 2),
+      rejectsNoBaselineCorrectAnswerable:
+        previouslyCorrectRejected(results, retrievalThreshold, questionGateThreshold).length === 0,
+      wrongChunkAcceptedDoesNotIncrease:
+        candidate.wrongChunkAccepted <= baselineEndToEnd.wrongChunkAcceptedForAnswerable,
+      baselineFalseAccepts,
+      candidateFalseAccepts,
+      baselineWrongChunkAccepted: baselineEndToEnd.wrongChunkAcceptedForAnswerable,
+      candidateWrongChunkAccepted: candidate.wrongChunkAccepted,
+    };
+  });
+  const first = checks[0];
+  const sameQualitativeResult =
+    first !== undefined &&
+    checks.every(
+      (check) =>
+        check.falseAcceptsReducedAtLeast50Percent === first.falseAcceptsReducedAtLeast50Percent &&
+        check.rejectsNoBaselineCorrectAnswerable === first.rejectsNoBaselineCorrectAnswerable &&
+        check.wrongChunkAcceptedDoesNotIncrease === first.wrongChunkAcceptedDoesNotIncrease,
+    );
+  return {
+    questionGateThreshold: round(questionGateThreshold),
+    passes:
+      checks.every(
+        (check) =>
+          check.falseAcceptsReducedAtLeast50Percent &&
+          check.rejectsNoBaselineCorrectAnswerable &&
+          check.wrongChunkAcceptedDoesNotIncrease,
+      ) && sameQualitativeResult,
+    sameQualitativeResultAt080And085: sameQualitativeResult,
+    checks,
+  };
+}
+
+function previouslyCorrectRejected(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+  questionGateThreshold: number,
+) {
+  return results
+    .filter(
+      (result) =>
+        result.answerable &&
+        result.top1Correct &&
+        accepted(result, retrievalThreshold) &&
+        !questionGateAccepted(result, retrievalThreshold, questionGateThreshold),
+    )
+    .map(compactQuestionGateResult);
+}
+
+function inspectedBaselineFalseAccepts(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+) {
+  return results
+    .filter((result) => !result.answerable && accepted(result, retrievalThreshold))
+    .map(compactQuestionGateResult);
+}
+
+function inspectedWrongAnswerableTop1(
+  results: readonly QuestionGateResult[],
+  retrievalThreshold: number,
+) {
+  return results
+    .filter(
+      (result) => result.answerable && accepted(result, retrievalThreshold) && !result.top1Correct,
+    )
+    .map(compactQuestionGateResult);
+}
+
+function questionMatchScoreDistributions(results: readonly QuestionGateResult[]) {
+  return {
+    correctTop1Answers: distribution(
+      results
+        .filter((result) => result.answerable && result.top1Correct)
+        .flatMap((result) =>
+          result.questionMatchScore === null ? [] : [result.questionMatchScore],
+        ),
+    ),
+    wrongTop1Answers: distribution(
+      results
+        .filter((result) => result.answerable && !result.top1Correct)
+        .flatMap((result) =>
+          result.questionMatchScore === null ? [] : [result.questionMatchScore],
+        ),
+    ),
+    unanswerableFalseAcceptsAt080: distribution(
+      results
+        .filter((result) => !result.answerable && accepted(result, 0.8))
+        .flatMap((result) =>
+          result.questionMatchScore === null ? [] : [result.questionMatchScore],
+        ),
+    ),
+    unanswerableFalseAcceptsAt085: distribution(
+      results
+        .filter((result) => !result.answerable && accepted(result, 0.85))
+        .flatMap((result) =>
+          result.questionMatchScore === null ? [] : [result.questionMatchScore],
+        ),
+    ),
   };
 }
 
@@ -342,6 +803,7 @@ async function evaluateRecipe(
     results.push({
       ...item,
       answerable: isAnswerable(item),
+      top1Content: top1?.content ?? null,
       recipeId: recipe.id,
       recipeDescription: recipe.description,
       queryEmbeddingInput,
@@ -801,6 +1263,16 @@ function compactExperimentQueryResult(result: ExperimentQueryResult) {
   };
 }
 
+function compactQuestionGateResult(result: QuestionGateResult) {
+  return {
+    ...compactQueryResult(result),
+    top2ChunkKey: result.top2ChunkKey,
+    top3ChunkKey: result.top3ChunkKey,
+    canonicalFaqQuestion: result.canonicalFaqQuestion,
+    questionMatchScore: roundNullable(result.questionMatchScore),
+  };
+}
+
 function verifyThreshold080(
   answerability080: ReturnType<typeof answerabilityAtThreshold>,
   endToEnd080: ReturnType<typeof endToEndAtThreshold>,
@@ -905,7 +1377,7 @@ function roundNullable(value: number | null): number | null {
   return value === null ? null : round(value);
 }
 
-function roundQueryResult(result: QueryResult): QueryResult {
+function roundQueryResult(result: QueryResult) {
   return {
     id: result.id,
     category: result.category,
@@ -926,12 +1398,20 @@ function roundQueryResult(result: QueryResult): QueryResult {
   };
 }
 
-function roundExperimentQueryResult(result: ExperimentQueryResult): ExperimentQueryResult {
+function roundExperimentQueryResult(result: ExperimentQueryResult) {
   return {
     ...roundQueryResult(result),
     recipeId: result.recipeId,
     recipeDescription: result.recipeDescription,
     queryEmbeddingInput: result.queryEmbeddingInput,
+  };
+}
+
+function roundQuestionGateResult(result: QuestionGateResult) {
+  return {
+    ...roundQueryResult(result),
+    canonicalFaqQuestion: result.canonicalFaqQuestion,
+    questionMatchScore: roundNullable(result.questionMatchScore),
   };
 }
 
@@ -966,19 +1446,41 @@ function parseCliOptions(args: string[]): CliOptions {
   }
 
   const experiment = args[experimentIndex + 1]?.trim();
-  if (experiment !== "brand-token-normalization") {
-    throw new Error("--experiment only supports `brand-token-normalization`.");
+  if (experiment === "brand-token-normalization") {
+    const resolvedOutputPath = outputPath ?? DEFAULT_OUTPUT_PATH;
+    if (resolvedOutputPath !== BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH) {
+      throw new Error(
+        `Brand-token normalization experiment output must be ${BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH}.`,
+      );
+    }
+    return {
+      mode: "brand-token-normalization-experiment",
+      outputPath: resolvedOutputPath,
+    };
   }
-  const resolvedOutputPath = outputPath ?? DEFAULT_OUTPUT_PATH;
-  if (resolvedOutputPath !== BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH) {
-    throw new Error(
-      `Brand-token normalization experiment output must be ${BRAND_TOKEN_EXPERIMENT_OUTPUT_PATH}.`,
-    );
+
+  if (experiment === "faq-question-gate") {
+    const resolvedOutputPath = outputPath ?? DEFAULT_OUTPUT_PATH;
+    if (resolvedOutputPath !== FAQ_QUESTION_GATE_EXPERIMENT_OUTPUT_PATH) {
+      throw new Error(
+        `FAQ question-gate experiment output must be ${FAQ_QUESTION_GATE_EXPERIMENT_OUTPUT_PATH}.`,
+      );
+    }
+    return {
+      mode: "faq-question-gate-experiment",
+      outputPath: resolvedOutputPath,
+    };
   }
-  return {
-    mode: "brand-token-normalization-experiment",
-    outputPath: resolvedOutputPath,
-  };
+
+  throw new Error("--experiment only supports `brand-token-normalization` or `faq-question-gate`.");
+}
+
+function buildFixedThresholdSweep(startInclusive: number, endInclusive: number, step: number) {
+  const thresholds: number[] = [];
+  for (let value = startInclusive; value <= endInclusive; value += step) {
+    thresholds.push(value / 100);
+  }
+  return thresholds;
 }
 
 function parseOutputPath(args: string[]): string | undefined {
