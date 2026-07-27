@@ -319,6 +319,8 @@ export class InMemoryRagDocumentStore implements RagDocumentStore {
         results.push(
           Object.freeze({
             content: chunk.content,
+            question: chunk.question,
+            answer: chunk.answer,
             score,
             documentKey,
             documentVersion: chunk.documentVersion,

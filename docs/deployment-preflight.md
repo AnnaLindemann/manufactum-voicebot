@@ -6,7 +6,11 @@ Scope: what the **existing** backend needs in order to run behind a public HTTPS
 controlled demo. It changes no code, adds no dependency, and does not design Phase 4 or the Dialfire
 integration. Everything below is derived from the current source and the frozen documentation.
 
-Deployed surface today: `GET /health` and `GET /api/products/search`. Nothing else exists.
+Deployed surface today: `GET /health`, `GET /api/products/search`, and `POST /api/rag/query`.
+Nothing else exists.
+
+`RAG_TEST_DATABASE_URL` is deliberately absent from the table below: it exists only for the
+destructive local integration suite and must never be set on a deployment.
 
 ---
 
@@ -14,14 +18,18 @@ Deployed surface today: `GET /health` and `GET /api/products/search`. Nothing el
 
 Read directly by the running process. There are no others.
 
-| Variable                    | Required | Default | Read where                        | Notes                                                                                                            |
-| --------------------------- | -------- | ------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `PORT`                      | no       | `3000`  | `src/server.ts`                   | Most platforms inject this. Do not hard-code it.                                                                 |
-| `MANUFACTUM_API_BASE_URL`   | yes      | —       | `src/config/manufactum-config.ts` | Must parse as a URL. Test-environment base URL.                                                                  |
-| `MANUFACTUM_API_KEY`        | yes      | —       | `src/config/manufactum-config.ts` | **Secret.** Test credential only.                                                                                |
-| `MANUFACTUM_API_KEY_HEADER` | yes      | —       | `src/config/manufactum-config.ts` | Header name the key is sent under. Not itself secret, but paired.                                                |
-| `MANUFACTUM_API_TIMEOUT_MS` | no       | `8000`  | `src/config/manufactum-config.ts` | Set-but-malformed fails loudly; unset takes the default.                                                         |
-| `TRUST_PROXY`               | no       | off     | `src/server.ts`                   | Express `trust proxy`. Set only behind a known proxy — it decides which IP the rate limiter counts. See `D-018`. |
+| Variable                         | Required | Default         | Read where                           | Notes                                                                                                                                             |
+| -------------------------------- | -------- | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                           | no       | `3000`          | `src/server.ts`                      | Most platforms inject this. Do not hard-code it.                                                                                                  |
+| `MANUFACTUM_API_BASE_URL`        | yes      | —               | `src/config/manufactum-config.ts`    | Must parse as a URL. Test-environment base URL.                                                                                                   |
+| `MANUFACTUM_API_KEY`             | yes      | —               | `src/config/manufactum-config.ts`    | **Secret.** Test credential only.                                                                                                                 |
+| `MANUFACTUM_API_KEY_HEADER`      | yes      | —               | `src/config/manufactum-config.ts`    | Header name the key is sent under. Not itself secret, but paired.                                                                                 |
+| `MANUFACTUM_API_TIMEOUT_MS`      | no       | `8000`          | `src/config/manufactum-config.ts`    | Set-but-malformed fails loudly; unset takes the default.                                                                                          |
+| `TRUST_PROXY`                    | no       | off             | `src/server.ts`                      | Express `trust proxy`. Set only behind a known proxy — it decides which IP the rate limiter counts. See `D-018`.                                  |
+| `DATABASE_URL`                   | yes      | —               | `src/config/rag-retrieval-config.ts` | **Secret** (carries a password). PostgreSQL + pgvector, for `POST /api/rag/query`. Presence is checked at startup; no connection is opened there. |
+| `RAG_RETRIEVAL_MIN_SCORE`        | no       | `0.8`           | `src/config/rag-retrieval-config.ts` | Minimum cosine similarity. Set-but-malformed or outside `0..1` fails loudly; unset takes the provisional default.                                 |
+| `RAG_EMBEDDING_LOCAL_FILES_ONLY` | no       | off             | `src/config/rag-retrieval-config.ts` | `true` forces the embedding runtime to use only cached model files.                                                                               |
+| `TRANSFORMERS_CACHE`             | no       | library default | `src/config/rag-retrieval-config.ts` | Where the pinned embedding artifact is cached. See §RAG note below.                                                                               |
 
 `NODE_ENV` is not read anywhere in the codebase. Setting it changes nothing today except Express's
 own internals; it is not a configuration switch for this backend.
@@ -58,6 +66,23 @@ decision for §6, not something to change here.
 at startup and exits non-zero on a missing or malformed variable, so a misconfigured release fails
 the deploy instead of reporting healthy. The lazy read in the request path is unchanged. `/health`
 still proves only liveness, so smoke test 3 remains the check that upstream credentials work.
+
+**Extended with `POST /api/rag/query`.** The same startup check now covers the RAG retrieval
+configuration, for the same reason: the route is registered from process start, so a release without
+`DATABASE_URL` or with a malformed `RAG_RETRIEVAL_MIN_SCORE` would boot, report healthy, and answer
+every retrieval call with `INTERNAL_ERROR`. Both configurations are evaluated even when one fails, so
+one deploy reports every offending variable.
+
+The check covers **presence and shape only**. It opens no connection, runs no query, and does not
+load the embedding model. Two consequences to plan a deployment around:
+
+- a correct `DATABASE_URL` pointing at an unreachable, unmigrated, or empty database still starts
+  cleanly and fails at request time as `INTERNAL_ERROR` / HTTP `500`. Startup validation is not a
+  substitute for a retrieval smoke test after deploy;
+- the pinned embedding artifact (~118 MB) is fetched or read on the **first** query, not at boot, so
+  the first RAG call after a release is materially slower than the rest. Either pre-warm it or expect
+  it. `TRANSFORMERS_CACHE` must point somewhere writable and, ideally, persistent — on an ephemeral
+  filesystem the download repeats on every restart.
 
 ---
 

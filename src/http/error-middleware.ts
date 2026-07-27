@@ -15,6 +15,41 @@ export function notFoundHandler(_request: Request, _response: Response, next: Ne
   next(new AppError("NOT_FOUND", "Unknown internal route."));
 }
 
+/**
+ * The closed set of `body-parser` failure types. A request body that is unparseable, oversized, or
+ * unsupported is a **caller** mistake, so it must produce `INVALID_REQUEST` with HTTP `400` like every
+ * other rejected input — not the `INTERNAL_ERROR` it would otherwise become by falling through as an
+ * unrecognized throw, which would blame the backend for a malformed request and mark it non-retryable
+ * for the wrong reason.
+ */
+const BODY_PARSER_ERROR_TYPES = new Set([
+  "encoding.unsupported",
+  "entity.parse.failed",
+  "entity.too.large",
+  "entity.verify.failed",
+  "parameters.too.many",
+  "request.aborted",
+  "request.size.invalid",
+  "stream.encoding.set",
+  "stream.not.readable",
+]);
+
+/**
+ * Only the fixed `type` discriminator is used. The parser's own message can quote the offending body
+ * text, so it is never carried into the technical message and never logged.
+ */
+function bodyParserRejection(error: unknown): AppError | null {
+  if (typeof error !== "object" || error === null || !("type" in error)) {
+    return null;
+  }
+
+  const { type } = error;
+
+  return typeof type === "string" && BODY_PARSER_ERROR_TYPES.has(type)
+    ? new AppError("INVALID_REQUEST", `Malformed request body (${type}).`)
+    : null;
+}
+
 export function createErrorMiddleware(logger: Logger) {
   return function errorMiddleware(
     error: unknown,
@@ -33,10 +68,11 @@ export function createErrorMiddleware(logger: Logger) {
     const appError =
       error instanceof AppError
         ? error
-        : new AppError(
+        : (bodyParserRejection(error) ??
+          new AppError(
             "INTERNAL_ERROR",
             error instanceof Error ? error.message : "Unhandled internal exception.",
-          );
+          ));
 
     const correlationId = getCorrelationId(response);
 

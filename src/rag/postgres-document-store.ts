@@ -96,6 +96,8 @@ type EmbeddingRow = {
 
 type RetrievalRow = {
   content: string;
+  question: string;
+  answer: string;
   score: number | string;
   document_key: string;
   document_version: number;
@@ -539,6 +541,8 @@ export class PostgresRagDocumentStore implements RagDocumentStore {
     try {
       const result = await this.pool.query<RetrievalRow>(
         `SELECT c.content,
+                c.question,
+                c.answer,
                 1 - (e.embedding <=> $1::vector) AS score,
                 c.document_key,
                 c.document_version,
@@ -728,6 +732,8 @@ function mapRetrievalRow(row: RetrievalRow): RelevantChunkSearchResult {
   }
   return Object.freeze({
     content: row.content,
+    question: row.question,
+    answer: row.answer,
     score,
     documentKey: row.document_key,
     documentVersion: row.document_version,

@@ -2,8 +2,8 @@
 
 ## Status
 
-`GET /health` and `GET /api/products/search` are **implemented and live**. The contract below
-describes what the code actually does; where it does not, the code is the defect.
+`GET /health`, `GET /api/products/search`, and `POST /api/rag/query` are **implemented and live**.
+The contract below describes what the code actually does; where it does not, the code is the defect.
 
 Every other endpoint in this document is **planned / not implemented**. None has an observed
 upstream capability, none has a route, and a request to any of them returns the `NOT_FOUND` envelope
@@ -479,6 +479,239 @@ that exist independently of a search result — remains future work, and `GET /a
 
 ---
 
+## POST /api/rag/query
+
+**Implemented.** The first RAG boundary: it lets an external agent ask the versioned FAQ knowledge
+base a question and receive the recorded evidence behind the answer.
+
+### Purpose and boundary
+
+`[D]` **This endpoint performs retrieval only.** It embeds the caller's question with the active
+embedding profile, searches the active chunks by cosine similarity, applies the minimum-relevance
+threshold, and returns whatever survived. It calls **no answer-generation model**, builds no prompt,
+holds no dialogue state, and composes no spoken sentence.
+
+`[D]` **Answer generation and dialogue behaviour belong to the external agent.** Dialfire remains
+responsible for dialogue management, prompt instructions, deciding when to call this tool, and
+turning returned evidence into a natural spoken answer. Nothing in this endpoint's design assumes an
+answer will be produced at all.
+
+`[D]` **Trust boundary.** The external agent may use returned evidence to formulate an answer. It
+must **not** treat an empty result as permission to invent one. `status: "not_found"` is a complete
+and final statement that the knowledge base has no sufficiently reliable passage for the question;
+the correct behaviour on it is a fallback phrase or a transfer to a human, never an improvised
+answer, never a weaker match, and never general model knowledge presented as Manufactum policy.
+
+`[D]` The endpoint is **read-only** with respect to RAG storage. The only storage operation it can
+reach is the similarity search over active chunks. It stages no version, writes no embedding,
+activates nothing, and mutates no stored record.
+
+`[D]` **Scope.** This phase serves the currently active _Mein Konto_ FAQ data only. It proves the
+integration principle, not knowledge-base completeness. A question outside that page is expected to
+return `not_found`, and that is the correct result, not a defect.
+
+### Request
+
+`POST /api/rag/query`, `Content-Type: application/json`.
+
+```json
+{
+  "query": "Welche Vorteile habe ich mit einem Kundenkonto?"
+}
+```
+
+| Field   | Type   | Required | Rule                                                           | Basis |
+| ------- | ------ | -------- | -------------------------------------------------------------- | ----- |
+| `query` | string | yes      | trimmed; length 1–500 after trimming; whitespace-only rejected | `[D]` |
+
+`[D]` The body is **strict**: `query` is the only accepted property, and **any** additional property
+is `INVALID_REQUEST`. The strictness is a security control, not a style preference. A caller must not
+be able to influence retrieval, so the following are not accepted in any form — body, query string,
+or header — and cannot be overridden:
+
+- the embedding model, its pinned revision, artifact, dtype, or profile ID;
+- the minimum relevance threshold;
+- the maximum number of chunks;
+- the active document version;
+- SQL, or any fragment of it;
+- document, language, or document-type filters;
+- any other internal retrieval configuration.
+
+An unknown property is rejected rather than ignored, so a caller that believes it is tuning retrieval
+is told plainly that it is not, instead of receiving a normal-looking answer produced under settings
+it did not get.
+
+`[D]` The 500-character ceiling is ours. A spoken FAQ question is short, and the active embedding
+profile truncates its input at 512 tokens, so a longer body could only be silently cut. It is higher
+than the 200 used for the product-search `q`, because that field is a search term and this one is a
+whole sentence. The JSON body itself is capped at 8 kB.
+
+`[D]` A body that is not valid JSON, is too large, or uses an unsupported encoding is
+`INVALID_REQUEST` with HTTP `400` — a caller mistake, not a backend fault.
+
+### Response — found
+
+HTTP `200`.
+
+```json
+{
+  "status": "found",
+  "query": "Welche Vorteile habe ich mit einem Kundenkonto?",
+  "evidence": [
+    {
+      "chunkKey": "mein-konto:v1:chunk-012",
+      "question": "Welche Vorteile bietet mir ein Konto?",
+      "answer": "Sie sehen Ihre Bestellungen jederzeit ein.",
+      "score": 0.918051,
+      "source": {
+        "documentKey": "mein-konto",
+        "documentVersion": 1,
+        "title": "Mein Konto",
+        "sourceUrl": "https://www.manufactum.de/mein-konto-c201130/"
+      }
+    }
+  ]
+}
+```
+
+| Field                     | Type      | Meaning                                                                                        |
+| ------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `status`                  | `"found"` | At least one chunk reached the minimum relevance threshold.                                    |
+| `query`                   | string    | The **trimmed** query retrieval actually ran on, echoed so a caller can log what was searched. |
+| `evidence`                | array     | Ordered most relevant first. At most 3 items. Never empty under `found`.                       |
+| `evidence[].chunkKey`     | string    | The stable chunk identifier, e.g. `mein-konto:v1:chunk-012`. It carries the document version.  |
+| `evidence[].question`     | string    | The recorded FAQ question, verbatim from the approved source.                                  |
+| `evidence[].answer`       | string    | The recorded FAQ answer, verbatim from the approved source.                                    |
+| `evidence[].score`        | number    | Cosine similarity against the caller's question, rounded to 6 decimals.                        |
+| `evidence[].source`       | object    | Attribution and version traceability for the chunk.                                            |
+| `…source.documentKey`     | string    | The approved document identifier from the source registry.                                     |
+| `…source.documentVersion` | integer   | The **active** immutable version the chunk belongs to.                                         |
+| `…source.title`           | string    | The document title as recorded at ingestion.                                                   |
+| `…source.sourceUrl`       | string    | The approved source URL.                                                                       |
+
+`[D]` Property naming follows the repository's existing RAG vocabulary — `chunkKey`, `documentKey`,
+`sourceUrl` — rather than inventing a second spelling (`chunkId`, `documentId`, `url`) for the same
+concepts. Everything a caller sees here is already the name used in ingestion, storage, and the
+evaluation reports, so a returned `chunkKey` can be traced through the system without translation.
+
+`[D]` `score` is exposed deliberately: it is the one diagnostic that lets an operator explain why a
+given answer was or was not returned. It is a similarity, not a probability, and it is meaningful only
+relative to the active embedding profile.
+
+`[D]` `documentVersion` is included because a RAG answer must be version-traceable: it must always be
+possible to say which immutable version of which approved document produced a spoken statement.
+
+### Response — not found
+
+HTTP `200`, not an error. "No sufficiently reliable evidence" is a normal, successful outcome.
+
+```json
+{
+  "status": "not_found",
+  "query": "Wie repariere ich eine Kaffeemühle?",
+  "evidence": []
+}
+```
+
+`[D]` `evidence` is empty exactly when `status` is `not_found`. No low-confidence passage is returned
+as if it were reliable, no partial or "best effort" match is included, and no answer is fabricated.
+
+### Retrieval behaviour
+
+`[D]` Retrieval uses the accepted production implementation (`retrieveRelevantChunks`) unchanged. No
+second retrieval path exists, no query rewriting is applied, no reranking is applied, and no
+alternative embedding model is consulted.
+
+`[D]` Only **active** chunks are searched: the join requires `document_version = current_version`, and
+a full embedding-profile match. A staged, superseded, or differently-embedded chunk is unreachable.
+
+`[D]` Ordering is deterministic: `score DESC, document_key ASC, document_version ASC, chunk_key ASC`.
+The response mapper preserves that order exactly and never re-ranks, so the same query against
+unchanged data returns the same body.
+
+`[D]` `maxChunks` is **3**, a code constant, matching the width the accepted evaluation was measured
+at and the default `k` in `rag-embeddings-and-retrieval-design.md` §5. It is not an environment
+variable, because a value an operator could widen would silently invalidate that measurement.
+
+`[D]` The minimum relevance threshold is **0.8**, carried over unchanged from the existing retrieval
+path (`scripts/smoke-rag-retrieval.ts`, `.env.example`), and it remains **provisional**.
+`rag-retrieval-evaluation-checkpoint-report.md` selects no production threshold and records `0.80` as
+too permissive for rejection on a single-source dataset. No new calibration evidence exists, so no new
+number is introduced here: choosing a different one at the API boundary would be a threshold change
+disguised as an integration step. It stays overridable by the operator through
+`RAG_RETRIEVAL_MIN_SCORE` for evaluation runs only, and it is bound to the active embedding profile —
+a threshold calibrated for `multilingual-e5-small` does not transfer to another model.
+
+`[D]` A consequence worth stating plainly to anyone connecting an agent: at `0.80` the measured
+behaviour on the labelled set accepts most unanswerable questions rather than rejecting them. A
+`found` response is therefore evidence that something matched, not proof that it answers the caller's
+question. This is why the trust boundary above puts the judgement on the agent and why the threshold
+is still open work.
+
+### Never exposed
+
+`[D]` The response is an allow-list projection built in one place (`toRagQueryResponse`). It cannot
+carry embeddings or embedding vectors, the canonical chunk `content`, database internals, SQL, stack
+traces, environment variables, API secrets, internal filesystem paths, or unpublished evaluation
+labels — including any field a future retrieval change happens to add.
+
+`[D]` The caller's question is **not logged**. It is caller-spoken text and may contain personal data.
+One structured line per query records the correlation ID, the endpoint, and the number of chunks
+returned.
+
+### Validation errors
+
+| Case                                                       | Code              | HTTP |
+| ---------------------------------------------------------- | ----------------- | ---- |
+| `query` missing, `null`, or not a string                   | `INVALID_REQUEST` | 400  |
+| `query` empty or whitespace-only after trimming            | `INVALID_REQUEST` | 400  |
+| `query` longer than 500 characters after trimming          | `INVALID_REQUEST` | 400  |
+| Body is not a JSON object, or is malformed, oversized JSON | `INVALID_REQUEST` | 400  |
+| Body carries any property other than `query`               | `INVALID_REQUEST` | 400  |
+| A method other than `POST` on the path                     | `NOT_FOUND`       | 404  |
+
+`[D]` A rejected request performs **no** embedding and **no** database read.
+
+### Server-error behaviour
+
+`[D]` Every retrieval failure — a database outage, a malformed stored vector, an embedding-runtime or
+model-load failure, or a missing or malformed retrieval configuration — becomes a single
+`INTERNAL_ERROR` with HTTP `500` and the standard envelope. The technical message is assembled from a
+fixed string plus, at most, a closed internal error code; no driver message, no `cause`, no SQL, no
+filesystem path, and no environment-variable value reaches either the response or the log line.
+
+`[D]` The configuration case should be **unreachable on a started process**: `src/server.ts` validates
+the RAG retrieval configuration at startup and exits non-zero on a missing `DATABASE_URL` or a
+malformed `RAG_RETRIEVAL_MIN_SCORE`, so a misconfigured release fails its deploy rather than booting,
+reporting healthy, and answering every retrieval call with a `500`. The runtime path is kept anyway,
+because startup validation checks presence and shape only — it opens no connection and loads no model,
+so a database that is unreachable, unmigrated, or empty still surfaces here as `INTERNAL_ERROR`.
+
+`[D]` No RAG-specific error code and no retryable RAG failure code is introduced in this phase.
+`INTERNAL_ERROR` is not retryable, so an agent treats a retrieval outage the way it treats any
+unavailable capability: fall back or transfer, rather than retry on a live call. Distinguishing a
+transient store outage from a permanent one is deferred until there is operational evidence of which
+failures actually occur.
+
+`[D]` This endpoint is **not** rate-limited. The limiter on `GET /api/products/search` exists because
+each admitted request costs one paid upstream call against our Manufactum credential; a RAG query
+costs local CPU and one read of our own database. If the endpoint is exposed publicly alongside the
+product-search route, this decision must be revisited — see "Remaining risks" in the Phase 12 report.
+
+### Future Dialfire integration note
+
+`[D]` This endpoint is designed to become one Dialfire tool: a single-parameter function taking the
+caller's question and returning evidence. The contract is intentionally small and stable so the tool
+definition does not change when retrieval improves — a better threshold, more source documents, or a
+recalibrated profile all change _what_ is returned, never the shape.
+
+`[D]` The Dialfire side is **not** built in this phase. When it is, the prompt for that tool must
+state the trust boundary above explicitly: use the returned `question`/`answer` pair as the basis for
+a short spoken answer, cite nothing that is not in `evidence`, and on `not_found` say that the
+information is not available and offer a transfer — never improvise.
+
+---
+
 ## Error contract
 
 `[D]` Every non-2xx internal response returns this envelope, defined in `architecture.md`:
@@ -693,7 +926,6 @@ POST   /api/reservations                     planned — not implemented
 GET    /api/reservations/:reservationId      planned — not implemented
 DELETE /api/reservations/:reservationId      planned — not implemented
 POST   /api/links/send                       planned — not implemented
-POST   /api/rag/query                        planned — not implemented
 ```
 
 `[D]` `GET /api/stores/resolve` in particular is **not** the mechanism behind the `store` parameter
@@ -701,7 +933,11 @@ of `GET /api/products/search`. That parameter is resolved inline, against the av
 the search response, and needs no store registry. A standalone resolve endpoint would require stores
 to exist independently of a search result, which is exactly the registry that does not exist yet.
 
-The request and response shapes previously sketched here for `/api/stores/resolve`,
-`/api/reservations`, and `/api/rag/query` have been removed. They described no observed capability,
-and leaving them in a document that now contains an agreed contract risked their being read as
-agreed too. They are recoverable from Git history if a later phase needs them as a starting point.
+The request and response shapes previously sketched here for `/api/stores/resolve` and
+`/api/reservations` have been removed. They described no observed capability, and leaving them in a
+document that now contains an agreed contract risked their being read as agreed too. They are
+recoverable from Git history if a later phase needs them as a starting point.
+
+`POST /api/rag/query` was also on this list. It has since been implemented against a capability that
+does exist — our own versioned RAG store, not an upstream API — and its agreed contract is now the
+`POST /api/rag/query` section above.

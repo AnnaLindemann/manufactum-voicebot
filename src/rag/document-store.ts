@@ -177,8 +177,17 @@ export type RelevantChunkSearchOptions = {
   maxChunks: number;
 };
 
+/**
+ * `question` and `answer` are the chunk's recorded FAQ pair, carried through unchanged from
+ * `rag_chunks`. They are a pure projection of columns that already exist on the matched row: they
+ * take no part in matching, filtering, ordering, or thresholding, so adding them to this result
+ * cannot alter which chunks are returned or in what order. They exist so a caller can cite the
+ * recorded pair without re-parsing `content`, whose canonical joined form is an ingestion detail.
+ */
 export type RelevantChunkSearchResult = {
   content: string;
+  question: string;
+  answer: string;
   score: number;
   documentKey: string;
   documentVersion: number;
