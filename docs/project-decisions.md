@@ -401,3 +401,101 @@ directions are not symmetric: off behind a real proxy makes every caller share o
 stricter than intended and fails safe; on where no proxy sets `X-Forwarded-For` lets any caller forge
 a fresh identity per request and bypass the limiter entirely. It must be set once the deployment
 topology is known.
+
+## D-019 — Deployment hardening before the public RAG test deployment
+
+Accepted. Prompted by a read-only deployment-readiness audit taken before the Render service was
+created. Everything here is deployment infrastructure, safety, configuration, tests, and
+documentation. **No retrieval behaviour was changed**: no embeddings, no embedding model or pinned
+artifact, no chunks, no ranking, no threshold, no `maxChunks`, no metadata projection, and no
+evaluation dataset was touched. Dialfire was not touched.
+
+### An idle pool error must not kill the process
+
+`pg.Pool` emits `error` when a client fails while sitting **idle** in the pool — a managed database
+restarting, a proxy reaping a socket. No request is in flight, so no request-level handler can see it,
+and an unhandled `error` event on an `EventEmitter` terminates Node. The failure mode was therefore a
+web service that dies overnight for no visible reason and is restarted by the platform.
+
+A listener now turns it into one structured line carrying a closed internal code and, at most, a
+recognizable driver code such as `57P01` or `ECONNRESET`. The driver's message is **not** logged: `pg`
+puts the failing SQL, the host, or the connection user into it depending on the failure. An unknown
+`code` is dropped rather than sanitized — a partial redaction of an unknown string is a guess.
+
+Request-level database error handling is unchanged, and retrieval results are unchanged.
+
+### The database transport is configured explicitly
+
+`DATABASE_URL` alone does not say how the connection is protected: `pg` infers it from whatever
+`sslmode` the string carries, and if it carries none, the connection is plaintext. The working
+connection string points at a Supabase pooler across the public internet and carries no `sslmode`,
+so every handshake sends the database password in the clear. A retrieval query returns published FAQ
+text and carries no secret, but the credential on the wire is real.
+
+Two variables, using the PostgreSQL vocabulary rather than a new spelling:
+
+- `DATABASE_SSL_MODE` — `disable`, `require`, or `verify-full`. Unset passes **no** `ssl` option, so
+  the connection string keeps governing and a loopback development database is unaffected.
+- `DATABASE_CA_CERT_PATH` — a **path** to a PEM CA bundle, required by `verify-full`. A path rather
+  than an inline PEM because Render mounts secret files at a path and a pasted certificate loses its
+  line breaks.
+
+`prefer` and `allow` are deliberately not accepted: both mean "encrypt if it happens to work", which
+is exactly the silent downgrade this exists to prevent. Requesting `require` or `verify-full` never
+falls back to plaintext. The CA file is read at startup, so a missing, unreadable, or non-PEM file
+fails the deploy instead of failing every TLS handshake inside a request. No certificate is committed
+to the repository, and neither the certificate, its path, nor the connection string appears in any
+message.
+
+### `POST /api/rag/query` is rate-limited, separately
+
+`api-contracts.md` recorded that this endpoint was not limited, with an explicit condition: revisit if
+it is ever exposed publicly alongside the product-search route. The public test deployment is that
+condition.
+
+The policies are separate because the costs differ in kind. A product search spends one paid upstream
+call; a RAG query spends **this instance** — embedding inference on a local ONNX model is the heaviest
+work the process does, so an unlimited public RAG endpoint is a denial-of-service surface rather than
+a billing one. Agreed policy: **10 requests per minute per client IP**, half the search allowance.
+
+It is configurable through `RAG_RATE_LIMIT_MAX_REQUESTS` and `RAG_RATE_LIMIT_WINDOW_MS` **within a
+bounded range** (1–60 requests, a 1–600 second window). This is a narrow, deliberate departure from
+`D-018`'s rule that a security control should not be widenable by an environment setting: a public
+test deployment must be tunable without a redeploy, so the control can be tightened freely and
+loosened only to a ceiling that is still a limit. No value of these variables switches it off.
+
+The limiter reuses the existing fixed-window counter — there is no second limiting algorithm, and no
+new dependency. A rejected request produces the standard `RATE_LIMITED` envelope with `Retry-After`,
+performs no embedding, and reads no database. Counting is in memory and per process, so the deployment
+must run a single instance.
+
+### The embedding artifact is warmed at build time
+
+`npm run rag:warm-embedding-cache` loads the pinned profile and runs one throwaway inference, so a
+release proves the artifact **executes** rather than merely downloading. It opens no database
+connection, performs no ingestion, and writes no embedding, so it needs no credentials and cannot
+damage RAG data. It exits non-zero when the artifact cannot be loaded, which fails the build.
+
+It is kept separate from `scripts/smoke-rag-embedding-runtime.ts`, which is a test asserting seven
+properties of the runtime's output. Merging them would give either a build that fails on an assertion
+unrelated to caching, or a test whose result depends on cache state.
+
+`RAG_EMBEDDING_LOCAL_FILES_ONLY=true` is **not** set automatically and must not be, until a deployed
+instance has been observed answering a RAG query from a warm cache. It forbids any download, which
+turns a cache miss from a slow first query into a failed one.
+
+### `PORT` is validated
+
+`Number(process.env.PORT ?? 3000)` accepted anything. `PORT=` became `0` and `PORT=8O80` became `NaN`,
+both of which Node reads as "bind an OS-assigned ephemeral port" — a release that starts, reports
+healthy, and is unreachable where anyone expects it. It is now an integer from 1 to 65535; an empty
+value is treated as unset and takes the default. It must be left **unset** on Render, which injects
+its own.
+
+### Memory evidence is labelled as local
+
+Resident set size measured on the development machine against the compiled server rose from 80 MiB
+idle to 924 MiB after the first RAG query and stayed there. That is evidence from one 16 GB Linux
+host, **not** a measurement of Render's consumption, and it is recorded that way. It is enough to rule
+out the smallest instance tiers and not enough to predict the actual figure, which Anna must read from
+Render's metrics after the first successful RAG query.

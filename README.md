@@ -140,3 +140,96 @@ npx tsc --init
 ```
 
 Do not add Supabase, Prisma, RAG, or deployment before the real search API response has been inspected and documented.
+
+---
+
+## Running the backend
+
+Node **24** (`engines.node` is `^24.11.0`).
+
+```bash
+npm ci
+cp .env.example .env     # then fill it in; see the comments in that file
+npm run dev              # tsx watch, reloads on change
+```
+
+The server prints `Manufactum Voicebot backend is listening on port <PORT>` and exposes:
+
+| Endpoint                   | Purpose                                                                  |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `GET /health`              | Liveness only. It proves the process is up — nothing more. See below.    |
+| `GET /api/products/search` | Product search against the Manufactum API. Rate-limited: 20 req/min/IP.  |
+| `POST /api/rag/query`      | Retrieval-only FAQ evidence from the versioned RAG store. 10 req/min/IP. |
+
+```bash
+curl -s "http://localhost:3000/health"
+
+curl -s -X POST "http://localhost:3000/api/rag/query" \
+  -H "content-type: application/json" \
+  -d '{"query":"Welche Vorteile bietet mir ein Konto?"}'
+```
+
+`query` is the only property `POST /api/rag/query` accepts; any other property is rejected with
+`INVALID_REQUEST`, deliberately, so a caller cannot influence retrieval.
+
+### Configuration is validated at startup
+
+The server checks every configuration it serves — Manufactum credentials, RAG retrieval,
+database TLS, the RAG rate limit, and `PORT` — **once at startup**, and exits non-zero with a single
+structured line naming every offending variable. A misconfigured release fails its deploy instead of
+booting, reporting healthy, and failing on the first caller. No connection is opened and no model is
+loaded by that check.
+
+Required to start: `MANUFACTUM_API_BASE_URL`, `MANUFACTUM_API_KEY`, `MANUFACTUM_API_KEY_HEADER`,
+`DATABASE_URL`. Everything else is optional with a documented default. `.env.example` is the complete
+inventory; `docs/deployment-preflight.md` § 1 says which of them belong on a deployment.
+
+### `/health` is not a readiness check
+
+`GET /health` returns `{"status":"ok"}` from a handler that touches nothing. It does not prove the
+database is reachable, that it holds active chunks, that the embedding model can load, or that TLS
+works. **A real `POST /api/rag/query` returning `status: "found"` is the readiness signal.**
+
+### Production build and start
+
+```bash
+npm run build                     # tsc → dist/
+npm run rag:warm-embedding-cache  # pre-loads the pinned ~118 MB embedding artifact into the cache
+npm run start                     # node dist/server.js
+```
+
+The warm-up is a build step, not a test: it opens no database connection, performs no ingestion, writes
+no embedding, and exits non-zero if the pinned artifact cannot be loaded. Without it, the **first** RAG
+query pays for the download. The embedding runtime is the memory-heavy part of this service — resident
+set size measured locally went from 80 MiB idle to 924 MiB after the first RAG query — so size the host
+accordingly; see `docs/deployment-preflight.md` § 2b.
+
+### Checks and tests
+
+```bash
+npm run check        # typecheck + lint + format:check + tests + build
+npm test             # vitest
+npm run typecheck
+```
+
+The default test suite needs no database and no model: the PostgreSQL store and the embedding runtime
+are stubbed. The destructive RAG PostgreSQL integration suite runs only when `RAG_TEST_DATABASE_URL`
+points at a **disposable** database whose name ends with `_test`; it refuses to run against
+`DATABASE_URL`. Never set `RAG_TEST_DATABASE_URL` on a deployment.
+
+### Operator scripts
+
+| Command                            | What it does                                                    |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `npm run migrate`                  | Applies `migrations/` to `DATABASE_URL`.                        |
+| `npm run rag:ingest`               | Ingests an approved FAQ page into a new staged version.         |
+| `npm run rag:embed-staged`         | Embeds a staged version's chunks.                               |
+| `npm run rag:warm-embedding-cache` | Build-time model cache warm-up. No database, no writes.         |
+| `npm run rag:smoke-embedding`      | Asserts the embedding runtime's output properties. No database. |
+| `npm run rag:smoke-retrieval`      | Read-only retrieval probes against `DATABASE_URL`.              |
+
+### Documentation
+
+`docs/api-contracts.md` (the contracts), `docs/deployment-preflight.md` (deployment inventory, memory
+and cache notes, smoke tests), `docs/deployment-strategy.md` (stages and build commands),
+`docs/project-decisions.md` (why things are the way they are).

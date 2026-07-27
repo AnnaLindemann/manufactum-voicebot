@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  resolveDatabaseSslConfig,
+  type DatabaseSslConfig,
+  type ReadCertificate,
+} from "./database-ssl.js";
 
 /**
  * Runtime configuration for RAG retrieval behind `POST /api/rag/query`.
@@ -41,15 +46,27 @@ const configSchema = z.object({
   embeddingCacheDir: z.string().min(1).optional(),
 });
 
-export type RagRetrievalConfig = z.infer<typeof configSchema>;
+export type RagRetrievalConfig = z.infer<typeof configSchema> & {
+  /** How the connection to `databaseUrl` is protected. See `database-ssl.ts`. */
+  ssl: DatabaseSslConfig;
+};
 
 /**
  * @throws {Error} when a variable is missing or malformed. The message names the variable only; a
  * connection string carries credentials and must never reach a log line or a caller.
  */
-export function loadRagRetrievalConfig(env: NodeJS.ProcessEnv = process.env): RagRetrievalConfig {
+export function loadRagRetrievalConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  readCertificate?: ReadCertificate,
+): RagRetrievalConfig {
   const rawMinScore = nonEmpty(env.RAG_RETRIEVAL_MIN_SCORE);
   const cacheDir = nonEmpty(env.TRANSFORMERS_CACHE);
+
+  // Resolved alongside the scalar variables rather than before them, so one failed load reports the
+  // TLS problem *and* the missing connection string instead of sending an operator round the deploy
+  // loop twice. Reading the CA file here is deliberate: it is what makes an unreadable certificate a
+  // failed startup rather than a failed connection inside the first request.
+  const ssl = resolveDatabaseSslConfig(env, readCertificate);
 
   const result = configSchema.safeParse({
     databaseUrl: nonEmpty(env.DATABASE_URL),
@@ -61,25 +78,36 @@ export function loadRagRetrievalConfig(env: NodeJS.ProcessEnv = process.env): Ra
     ...(cacheDir === undefined ? {} : { embeddingCacheDir: cacheDir }),
   });
 
-  if (!result.success) {
-    const variables: Record<string, string> = {
-      databaseUrl: "DATABASE_URL",
-      maxChunks: "RAG retrieval maxChunks (internal constant)",
-      minScore: "RAG_RETRIEVAL_MIN_SCORE",
-      embeddingLocalFilesOnly: "RAG_EMBEDDING_LOCAL_FILES_ONLY",
-      embeddingCacheDir: "TRANSFORMERS_CACHE",
-    };
+  const variables: Record<string, string> = {
+    databaseUrl: "DATABASE_URL",
+    maxChunks: "RAG retrieval maxChunks (internal constant)",
+    minScore: "RAG_RETRIEVAL_MIN_SCORE",
+    embeddingLocalFilesOnly: "RAG_EMBEDDING_LOCAL_FILES_ONLY",
+    embeddingCacheDir: "TRANSFORMERS_CACHE",
+  };
 
-    const missing = [
-      ...new Set(
-        result.error.issues.map((issue) => variables[String(issue.path[0])] ?? "unknown variable"),
-      ),
-    ];
+  const missing = [
+    ...new Set([
+      ...(result.success
+        ? []
+        : result.error.issues.map(
+            (issue) => variables[String(issue.path[0])] ?? "unknown variable",
+          )),
+      ...(ssl.ok ? [] : [ssl.message]),
+    ]),
+  ];
 
+  if (missing.length > 0) {
     throw new Error(`Invalid or missing RAG retrieval configuration: ${missing.join(", ")}`);
   }
 
-  return result.data;
+  if (!result.success || !ssl.ok) {
+    // Unreachable: `missing` is empty exactly when both succeeded. Present so the narrowing below is
+    // proved rather than asserted.
+    throw new Error("Invalid or missing RAG retrieval configuration.");
+  }
+
+  return { ...result.data, ssl: ssl.config };
 }
 
 function nonEmpty(value: string | undefined): string | undefined {

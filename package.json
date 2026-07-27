@@ -17,6 +17,7 @@
     "migrate": "tsx scripts/migrate.ts",
     "rag:ingest": "tsx scripts/ingest-approved-faq.ts",
     "rag:embed-staged": "tsx scripts/embed-staged-faq-chunks.ts",
+    "rag:warm-embedding-cache": "tsx scripts/warm-embedding-cache.ts",
     "rag:smoke-embedding": "tsx scripts/smoke-rag-embedding-runtime.ts",
     "rag:smoke-retrieval": "tsx scripts/smoke-rag-retrieval.ts",
     "lint": "eslint .",

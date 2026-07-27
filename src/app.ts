@@ -2,6 +2,7 @@ import express, { type Express, type RequestHandler } from "express";
 import { correlationIdMiddleware } from "./http/correlation-id.js";
 import { createErrorMiddleware, notFoundHandler } from "./http/error-middleware.js";
 import { createProductSearchRouter } from "./http/product-search-route.js";
+import { createRagQueryRateLimiter } from "./http/rag-rate-limit.js";
 import { createRagQueryRouter } from "./http/rag-query-route.js";
 import { createRateLimiter } from "./http/rate-limit.js";
 import { createRequestLogger } from "./http/request-logger.js";
@@ -22,6 +23,8 @@ export type AppDependencies = {
   ragQueryService?: RagQueryService;
   /** Injectable so tests can drive the limiter on a controlled clock. */
   rateLimiter?: RequestHandler;
+  /** Injectable for the same reason, and separately: the two limiters have separate policies. */
+  ragRateLimiter?: RequestHandler;
 };
 
 export function createApp({
@@ -29,14 +32,16 @@ export function createApp({
   productSearchService,
   ragQueryService,
   rateLimiter = createRateLimiter(),
+  ragRateLimiter = createRagQueryRateLimiter(),
 }: AppDependencies = {}): Express {
   const searchProducts =
     productSearchService ?? createProductSearchService(createProductSearchClient({ logger }));
 
   // The dependency factory only memoizes; it opens no pool and loads no model until the first query,
-  // so constructing the app still needs neither a database nor the embedding artifact.
+  // so constructing the app still needs neither a database nor the embedding artifact. The logger is
+  // handed over so a pool-level failure with no request behind it still reaches the log stream.
   const answerRagQuery =
-    ragQueryService ?? createRagQueryService(createDefaultRagRetrievalDependencies(), logger);
+    ragQueryService ?? createRagQueryService(createDefaultRagRetrievalDependencies(logger), logger);
 
   const app = express();
 
@@ -54,9 +59,12 @@ export function createApp({
   app.use("/api/products/search", rateLimiter);
   app.use(createProductSearchRouter(searchProducts));
 
-  // Retrieval only: it returns recorded FAQ evidence and never generates an answer. Deliberately not
-  // behind the limiter above, which exists because each product search costs one paid upstream call
-  // against our Manufactum credential; a RAG query costs local CPU and one read of our own database.
+  // Retrieval only: it returns recorded FAQ evidence and never generates an answer. It has its own
+  // limiter rather than sharing the one above, because the two are limited for different reasons: a
+  // product search spends a paid upstream call, while a RAG query spends CPU on this instance running
+  // a local embedding model. Mounted before the router, so a rejected request costs no embedding and
+  // no database read.
+  app.use("/api/rag/query", ragRateLimiter);
   app.use(createRagQueryRouter(answerRagQuery));
 
   // Last: an unmatched route becomes the NOT_FOUND envelope rather than Express's HTML default.

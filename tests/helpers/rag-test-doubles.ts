@@ -116,7 +116,7 @@ export function searchResult(
     answer: "Sie sehen Ihre Bestellungen jederzeit ein.",
     documentKey: "mein-konto",
     documentVersion: 1,
-    sourceUrl: "https://www.manufactum.de/mein-konto-c201130/",
+    sourceUrl: "https://www.manufactum.de/konto-c201130/",
     title: "Mein Konto",
     documentType: "account-faq",
     language: "de",

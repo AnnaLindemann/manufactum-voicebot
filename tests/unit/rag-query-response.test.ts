@@ -25,7 +25,7 @@ describe("toRagQueryResponse", () => {
             documentKey: "mein-konto",
             documentVersion: 1,
             title: "Mein Konto",
-            sourceUrl: "https://www.manufactum.de/mein-konto-c201130/",
+            sourceUrl: "https://www.manufactum.de/konto-c201130/",
           },
         },
       ],

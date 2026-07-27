@@ -1,7 +1,10 @@
 import pg from "pg";
+import { databaseSslPoolOptions } from "../config/database-ssl.js";
 import { loadRagRetrievalConfig } from "../config/rag-retrieval-config.js";
+import { consoleLogger, type Logger } from "../logging/logger.js";
 import type { RagRetrievalDependencies } from "../services/rag-query-service.js";
 import { TransformersE5SmallPassageEmbeddingGenerator } from "./e5-passage-embeddings.js";
+import { registerRagPoolErrorLogging } from "./pool-error-logging.js";
 import { PostgresRagDocumentStore } from "./postgres-document-store.js";
 
 /**
@@ -18,16 +21,18 @@ import { PostgresRagDocumentStore } from "./postgres-document-store.js";
  * A failed build is not cached: the next request retries, so a database that was briefly unreachable
  * at the first query does not disable retrieval for the process lifetime.
  */
-export function createDefaultRagRetrievalDependencies(): () => Promise<RagRetrievalDependencies> {
+export function createDefaultRagRetrievalDependencies(
+  logger: Logger = consoleLogger,
+): () => Promise<RagRetrievalDependencies> {
   let dependencies: RagRetrievalDependencies | undefined;
 
   return function resolveRagRetrievalDependencies(): Promise<RagRetrievalDependencies> {
-    dependencies ??= build();
+    dependencies ??= build(logger);
     return Promise.resolve(dependencies);
   };
 }
 
-function build(): RagRetrievalDependencies {
+function build(logger: Logger): RagRetrievalDependencies {
   const config = loadRagRetrievalConfig();
 
   const generatorOptions: ConstructorParameters<
@@ -37,8 +42,18 @@ function build(): RagRetrievalDependencies {
     ...(config.embeddingCacheDir === undefined ? {} : { cacheDir: config.embeddingCacheDir }),
   };
 
+  const pool = new pg.Pool({
+    connectionString: config.databaseUrl,
+    // Empty when no mode is configured, so the connection string's own `sslmode` keeps governing and
+    // a local development database is unaffected. See `config/database-ssl.ts`.
+    ...databaseSslPoolOptions(config.ssl),
+  });
+
+  // Before the store, so no query can be issued while an idle-client error would still be fatal.
+  registerRagPoolErrorLogging(pool, logger);
+
   return {
-    store: new PostgresRagDocumentStore(new pg.Pool({ connectionString: config.databaseUrl })),
+    store: new PostgresRagDocumentStore(pool),
     generator: new TransformersE5SmallPassageEmbeddingGenerator(generatorOptions),
     retrieval: { maxChunks: config.maxChunks, minScore: config.minScore },
   };

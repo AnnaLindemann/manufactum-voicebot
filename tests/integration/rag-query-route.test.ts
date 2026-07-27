@@ -5,6 +5,11 @@ import {
   DEFAULT_RAG_RETRIEVAL_MIN_SCORE,
   RAG_RETRIEVAL_MAX_CHUNKS,
 } from "../../src/config/rag-retrieval-config.js";
+import {
+  DEFAULT_RAG_RATE_LIMIT_MAX_REQUESTS,
+  DEFAULT_RAG_RATE_LIMIT_WINDOW_MS,
+} from "../../src/config/rag-rate-limit-config.js";
+import { createRateLimiter } from "../../src/http/rate-limit.js";
 import { MAX_RAG_QUERY_LENGTH } from "../../src/http/validation/rag-query-request.js";
 import { embeddingProfileModelRef } from "../../src/rag/embedding-profile.js";
 import { createRagQueryService } from "../../src/services/rag-query-service.js";
@@ -26,7 +31,7 @@ import { createRecordingLogger } from "../helpers/test-doubles.js";
  */
 function createTestApp(
   rows: readonly RelevantChunkSearchResult[] | (() => Promise<RelevantChunkSearchResult[]>) = [],
-  { embeddingError }: { embeddingError?: Error } = {},
+  { embeddingError, maxRequests }: { embeddingError?: Error; maxRequests?: number } = {},
 ) {
   const store = createRecordingRagDocumentStore(rows);
   const generator = createStubQueryEmbeddingGenerator(
@@ -36,6 +41,13 @@ function createTestApp(
 
   const app = createApp({
     logger,
+    // A fixed clock, so the limiter's window cannot expire mid-test and every test that is not about
+    // rate limiting runs against a budget it cannot exhaust.
+    ragRateLimiter: createRateLimiter({
+      maxRequests: maxRequests ?? DEFAULT_RAG_RATE_LIMIT_MAX_REQUESTS,
+      windowMs: DEFAULT_RAG_RATE_LIMIT_WINDOW_MS,
+      now: () => 1_000,
+    }),
     ragQueryService: createRagQueryService(
       () =>
         Promise.resolve({
@@ -85,7 +97,7 @@ describe("POST /api/rag/query", () => {
             documentKey: "mein-konto",
             documentVersion: 1,
             title: "Mein Konto",
-            sourceUrl: "https://www.manufactum.de/mein-konto-c201130/",
+            sourceUrl: "https://www.manufactum.de/konto-c201130/",
           },
         },
       ],
@@ -316,5 +328,96 @@ describe("POST /api/rag/query", () => {
       .send({ query: "Frage?" });
 
     expect(response.headers["x-correlation-id"]).toBe("rag-trace-1");
+  });
+});
+
+/**
+ * The endpoint's own limiter, added for the public test deployment. The limiter mechanism itself is
+ * unit-tested on a controlled clock in `rate-limit.test.ts`; what matters here is that it is mounted
+ * on this route, that it rejects before any retrieval work, and that a rejection is the same
+ * structured envelope every other non-2xx response is.
+ */
+describe("POST /api/rag/query rate limiting", () => {
+  it("admits requests up to the configured limit unchanged", async () => {
+    const { app } = createTestApp([MATCH], { maxRequests: 3 });
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const response = await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+      // The success contract of an admitted request is untouched by the limiter.
+      expect(response.status, `request ${String(attempt)}`).toBe(200);
+      expect(successBody(response).status).toBe("found");
+    }
+  });
+
+  it("rejects the request past the limit with the RATE_LIMITED envelope and a Retry-After", async () => {
+    const { app } = createTestApp([MATCH], { maxRequests: 2 });
+
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+    const response = await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+    expect(response.status).toBe(429);
+    const { correlationId, ...envelope } = errorBody(response);
+    expect(envelope).toEqual({
+      code: "RATE_LIMITED",
+      safeCustomerMessage: "Ich bin gerade sehr gefragt. Bitte einen Moment Geduld.",
+      // Waiting alone fixes this one, so an agent may retry rather than fall back.
+      retryable: true,
+    });
+    expect(correlationId).toEqual(expect.any(String));
+    expect(response.headers["retry-after"]).toBe("60");
+  });
+
+  it("costs no embedding and no database read once the limit is exceeded", async () => {
+    const { app, store, generator } = createTestApp([MATCH], { maxRequests: 1 });
+
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+    // The whole point of limiting this endpoint: a rejected request must not run the local embedding
+    // model, which is the most expensive thing this process does.
+    expect(store.searchCalls).toHaveLength(1);
+    expect(generator.embeddedQueries).toHaveLength(1);
+  });
+
+  it("leaks nothing about the limiter or the caller into the rejection body", async () => {
+    const { app } = createTestApp([MATCH], { maxRequests: 1 });
+
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+    const response = await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+    const serialized = JSON.stringify(response.body);
+    expect(Object.keys(response.body as object).sort()).toEqual([
+      "code",
+      "correlationId",
+      "retryable",
+      "safeCustomerMessage",
+    ]);
+    // Neither the policy nor the client's address is a caller's business; the IP is personal data.
+    expect(serialized).not.toContain("127.0.0.1");
+    expect(serialized).not.toContain("::ffff:");
+  });
+
+  it("does not limit the health probe, which must never be rejected into a false unhealthy state", async () => {
+    const { app } = createTestApp([MATCH], { maxRequests: 1 });
+
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+    await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+    const health = await request(app).get("/health");
+
+    expect(health.status).toBe(200);
+    expect(health.body).toEqual({ status: "ok" });
+  });
+
+  it("does not consume the RAG budget from any other route", async () => {
+    const { app } = createTestApp([MATCH], { maxRequests: 1 });
+
+    // A 404 on an unrelated path must not count against the RAG limit; the limiter is path-scoped.
+    await request(app).get("/api/does-not-exist");
+    const response = await request(app).post("/api/rag/query").send({ query: "Frage?" });
+
+    expect(response.status).toBe(200);
   });
 });

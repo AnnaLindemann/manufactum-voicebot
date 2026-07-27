@@ -553,26 +553,65 @@ whole sentence. The JSON body itself is capped at 8 kB.
 
 HTTP `200`.
 
+The example below is a **real, unedited response** from the running service against the currently
+active `mein-konto` v1 data, at the configured width of 3 and threshold of `0.8`. The long answers are
+reproduced in full rather than shortened, because shortening them is what made the previous example in
+this document wrong: it paired the right question with an invented one-line answer, a chunk key that
+belongs to a different FAQ item, and a `sourceUrl` (`/mein-konto-c201130/`) that the approved source
+registry does not contain. The approved URL is `/konto-c201130/`.
+
 ```json
 {
   "status": "found",
-  "query": "Welche Vorteile habe ich mit einem Kundenkonto?",
+  "query": "Welche Vorteile bietet mir ein Konto?",
   "evidence": [
     {
-      "chunkKey": "mein-konto:v1:chunk-012",
+      "chunkKey": "mein-konto:v1:chunk-002",
       "question": "Welche Vorteile bietet mir ein Konto?",
-      "answer": "Sie sehen Ihre Bestellungen jederzeit ein.",
-      "score": 0.918051,
+      "answer": "Mit einem Konto genießen Sie die folgenden Vorteile:\n• Sie können Ihr Passwort und Ihre E-Mail-Adresse für die Anmeldung im Konto jederzeit selbst ändern.\n• Sie können Onlinebestellungen einsehen, inklusive Sendungsverfolgung und Onlinerechnung.\n• Sie können bei Bedarf das Rücksendeetikett zu Ihrer Bestellung selbstständig erstellen und drucken.\n• Sie können mehrere Lieferadressen hinterlegen. Ihre persönlichen Daten sind für zukünftige Bestellungen direkt gespeichert.\n• Sie können prüfen, wie viel Guthaben Sie auf Ihrem Warengutschein haben.\n• Sie können sich bequem zu unserem Newsletter an- und abmelden.",
+      "score": 0.930097,
       "source": {
         "documentKey": "mein-konto",
         "documentVersion": 1,
         "title": "Mein Konto",
-        "sourceUrl": "https://www.manufactum.de/mein-konto-c201130/"
+        "sourceUrl": "https://www.manufactum.de/konto-c201130/"
+      }
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-001",
+      "question": "Wie kann ich mich bei Manufactum registrieren?",
+      "answer": "Im Login-Bereich unter „Kundenkonto“ können Sie das Registrierungsformular ausfüllen und ein Konto erstellen. Sie können Ihr Konto auch während Ihrer ersten Bestellung einrichten. Nach der Registrierung sind Sie sofort in Ihrem Konto angemeldet und können dort Ihre Angaben prüfen. Im Anschluss an Ihre Registrierung erhalten Sie eine Bestätigungs-E-Mail und können sich danach mit Ihrer E-Mail-Adresse und Ihrem persönlichen Passwort anmelden.",
+      "score": 0.831382,
+      "source": {
+        "documentKey": "mein-konto",
+        "documentVersion": 1,
+        "title": "Mein Konto",
+        "sourceUrl": "https://www.manufactum.de/konto-c201130/"
+      }
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-005",
+      "question": "Ich möchte mein Passwort ändern, was kann ich tun?",
+      "answer": "Wenn Sie Ihr Passwort ändern möchten, können Sie innerhalb Ihres Kontos im Bereich „Passwort ändern“ ein neues Passwort hinterlegen. Bitte achten Sie darauf, ein möglichst kompliziertes Passwort zu vergeben und dieses nicht für mehrere Konten zu verwenden.",
+      "score": 0.828603,
+      "source": {
+        "documentKey": "mein-konto",
+        "documentVersion": 1,
+        "title": "Mein Konto",
+        "sourceUrl": "https://www.manufactum.de/konto-c201130/"
       }
     }
   ]
 }
 ```
+
+`[D]` This example is also the clearest available statement of the threshold caveat below. The
+question is answered by the **first** item alone; the second and third are about registering and about
+changing a password, and they are returned only because `0.831382` and `0.828603` clear a `0.8` bar.
+The three scores match the recorded baseline for this query exactly
+(`docs/evaluation/mein-konto-v1-development-v1-active-baseline-retrieval-results.json`,
+`mein-konto-v1-dev-002`). An agent that reads `evidence[0]` and stops is behaving correctly; one that
+concatenates all three will produce a confidently wrong answer.
 
 | Field                     | Type      | Meaning                                                                                        |
 | ------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
@@ -669,6 +708,7 @@ returned.
 | Body is not a JSON object, or is malformed, oversized JSON | `INVALID_REQUEST` | 400  |
 | Body carries any property other than `query`               | `INVALID_REQUEST` | 400  |
 | A method other than `POST` on the path                     | `NOT_FOUND`       | 404  |
+| More requests from one client IP than the limiter admits   | `RATE_LIMITED`    | 429  |
 
 `[D]` A rejected request performs **no** embedding and **no** database read.
 
@@ -681,11 +721,23 @@ fixed string plus, at most, a closed internal error code; no driver message, no 
 filesystem path, and no environment-variable value reaches either the response or the log line.
 
 `[D]` The configuration case should be **unreachable on a started process**: `src/server.ts` validates
-the RAG retrieval configuration at startup and exits non-zero on a missing `DATABASE_URL` or a
-malformed `RAG_RETRIEVAL_MIN_SCORE`, so a misconfigured release fails its deploy rather than booting,
-reporting healthy, and answering every retrieval call with a `500`. The runtime path is kept anyway,
-because startup validation checks presence and shape only — it opens no connection and loads no model,
-so a database that is unreachable, unmigrated, or empty still surfaces here as `INTERNAL_ERROR`.
+the RAG retrieval configuration at startup and exits non-zero on a missing `DATABASE_URL`, a malformed
+`RAG_RETRIEVAL_MIN_SCORE`, an unknown `DATABASE_SSL_MODE`, or a `DATABASE_CA_CERT_PATH` that is
+missing, unreadable, or not a PEM bundle, so a misconfigured release fails its deploy rather than
+booting, reporting healthy, and answering every retrieval call with a `500`. The runtime path is kept
+anyway, because startup validation checks presence and shape only — it opens no connection and loads
+no model, so a database that is unreachable, unmigrated, or empty still surfaces here as
+`INTERNAL_ERROR`.
+
+`[D]` A **pool-level** failure is different from a request-level one and is handled separately. When a
+client sitting **idle** in the connection pool fails — the database restarts, a proxy reaps the
+socket — no request is in flight, so no request-level handler can see it. `pg.Pool` emits `error`, and
+an unhandled `error` event terminates the Node process. `src/rag/pool-error-logging.ts` registers a
+listener, so the event becomes one structured log line (`rag_pool_idle_client_error`) carrying a closed
+internal code and, at most, a recognizable driver code such as `57P01` or `ECONNRESET` — never the
+driver's message, the SQL, the host, or any part of the connection string. The pool discards the
+broken client and the next query opens a new one. Request-level error handling, retrieval results, and
+every response contract above are unchanged by this.
 
 `[D]` No RAG-specific error code and no retryable RAG failure code is introduced in this phase.
 `INTERNAL_ERROR` is not retryable, so an agent treats a retrieval outage the way it treats any
@@ -693,10 +745,39 @@ unavailable capability: fall back or transfer, rather than retry on a live call.
 transient store outage from a permanent one is deferred until there is operational evidence of which
 failures actually occur.
 
-`[D]` This endpoint is **not** rate-limited. The limiter on `GET /api/products/search` exists because
-each admitted request costs one paid upstream call against our Manufactum credential; a RAG query
-costs local CPU and one read of our own database. If the endpoint is exposed publicly alongside the
-product-search route, this decision must be revisited — see "Remaining risks" in the Phase 12 report.
+### Rate limiting
+
+`[D]` **Superseded.** This endpoint was previously **not** rate-limited, on the ground that the
+limiter on `GET /api/products/search` exists to protect a paid upstream credential while a RAG query
+costs only local CPU and one read of our own database. That decision carried an explicit condition:
+"if the endpoint is exposed publicly alongside the product-search route, this decision must be
+revisited". The public test deployment is exactly that case, so it is revisited here.
+
+`[D]` `POST /api/rag/query` now has its **own** limiter with its **own** policy: **10 requests per
+minute per client IP**, against `request.ip` exactly as the product-search limiter counts. The two
+policies are separate because the two costs are different in kind. A product search spends money; a
+RAG query spends the instance. Embedding a question with the local `multilingual-e5-small` runtime is
+the most expensive thing this process does, and an unlimited public endpoint that runs it on a small
+single-instance deployment is a denial-of-service surface rather than a billing one. Ten per minute is
+far more than a caller can produce by speaking, and half the product-search allowance.
+
+`[D]` Configurable through `RAG_RATE_LIMIT_MAX_REQUESTS` and `RAG_RATE_LIMIT_WINDOW_MS`, within a
+**bounded** range (1–60 requests, a 1–600 second window). This is a deliberate, narrow departure from
+the product-search limiter, which is a hard-coded constant on the stated ground that "a security
+control that can be widened by an environment setting tends to be widened". The ground is respected
+rather than dropped: a public test deployment has to be tunable without a redeploy, so the control can
+be tightened freely and loosened only up to a ceiling that is still a limit. `0`, a negative, a
+fractional, or an out-of-range value is a configuration error that fails the deploy — there is no
+value of these variables that turns the limiter off.
+
+`[D]` A rejected request produces the **standard envelope**, unchanged: HTTP `429`, `RATE_LIMITED`,
+`retryable: true`, a `correlationId`, and a `Retry-After` header in whole seconds. It performs **no**
+embedding and **no** database read. An admitted request is untouched: the `found` / `not_found`
+success contract and every documented error response are exactly what they were.
+
+`[D]` Counting is **in memory and per process**, like the product-search limiter. It does not survive
+a restart and is not shared between instances, so the deployment must run a **single** instance; with
+two, each caller receives the full budget on each one. See `deployment-preflight.md`.
 
 ### Future Dialfire integration note
 
@@ -770,6 +851,11 @@ long that wait is.
 the limit returns `RATE_LIMITED` as the standard envelope; no upstream call is made for a rejected
 request.
 
+`[D]` `POST /api/rag/query` is limited **separately**, to **10 requests per minute per client IP**,
+with its own configuration. The two policies are deliberately not shared: see
+§ POST /api/rag/query → Rate limiting for why the costs differ and why that one is bounded-configurable
+while this one is a constant.
+
 `[D]` `GET /health` is **not** rate-limited, so a platform health probe can never be rejected and
 never consumes a caller's budget.
 
@@ -783,12 +869,13 @@ control on the public endpoint. See `D-018` and `architecture.md` § Security ru
 `[D]` The window is fixed, not sliding. Up to twice the limit can pass across a window boundary. This
 is accepted: the control exists to stop sustained abuse, which cannot hide in one boundary.
 
-`[D]` The limit is a code constant, not an environment variable. A security control that can be
-widened by an environment setting tends to be widened.
+`[D]` The **product-search** limit is a code constant, not an environment variable. A security control
+that can be widened by an environment setting tends to be widened. The RAG limit is the one narrow
+exception, and it is bounded rather than free; the reasoning is recorded with it.
 
-`[D]` Counting is **per process and in memory**. More than one instance multiplies the effective
-limit by the instance count, so the Test Deployment runs a single instance. A shared counter is a
-production concern and belongs to Phase 16.
+`[D]` Counting is **per process and in memory**, for both limiters. More than one instance multiplies
+the effective limit by the instance count, so the Test Deployment runs a single instance. A shared
+counter is a production concern and belongs to Phase 16.
 
 `[D]` Internal upstream request timeout: **8 seconds**, configurable per environment through
 `MANUFACTUM_API_TIMEOUT_MS`. This is still tighter than the 10-second timeout used by the Phase 1

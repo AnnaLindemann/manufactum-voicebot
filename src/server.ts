@@ -2,9 +2,9 @@
 import "dotenv/config";
 import { app } from "./app.js";
 import { loadManufactumConfig } from "./config/manufactum-config.js";
+import { loadPort } from "./config/port-config.js";
+import { loadRagRateLimitConfig } from "./config/rag-rate-limit-config.js";
 import { loadRagRetrievalConfig } from "./config/rag-retrieval-config.js";
-
-const port = Number(process.env.PORT ?? 3000);
 
 /**
  * Fail fast on missing or malformed configuration, for **every** capability the process serves.
@@ -28,7 +28,17 @@ const port = Number(process.env.PORT ?? 3000);
  * belongs on the first query, not on the boot path. Unreachable-at-runtime therefore remains a `500`,
  * as it must.
  *
- * Both configurations are evaluated even when the first one fails, so an operator fixing a bad
+ * The RAG rate-limit policy and `PORT` are checked for the same reason, one step earlier in the
+ * failure chain: a malformed limit would otherwise surface as an `INTERNAL_ERROR` on the first
+ * retrieval call, and a malformed `PORT` would produce a process listening on an OS-assigned
+ * ephemeral port that nothing can reach — a release that looks alive and answers nobody.
+ *
+ * The RAG retrieval check now also covers the **transport**: when `DATABASE_SSL_MODE` is
+ * `verify-full`, the CA file named by `DATABASE_CA_CERT_PATH` is read here, so a missing or
+ * unreadable certificate fails the deploy instead of failing every query's TLS handshake later.
+ * Reading the file is the only I/O this check performs; no connection is opened.
+ *
+ * Every configuration is evaluated even when the first one fails, so an operator fixing a bad
  * release sees every offending variable at once instead of discovering the second on the next deploy.
  *
  * This runs at server start only. It does not change the lazy reads, which stay the single source of
@@ -38,15 +48,18 @@ function verifyConfigurationOrExit(): void {
   const failures = [
     configurationFailure(() => loadManufactumConfig()),
     configurationFailure(() => loadRagRetrievalConfig()),
+    configurationFailure(() => loadRagRateLimitConfig()),
+    configurationFailure(() => loadPort()),
   ].filter((message): message is string => message !== null);
 
   if (failures.length === 0) {
     return;
   }
 
-  // Every message names the offending variables and never their values; see the two config modules.
-  // That matters most here: `MANUFACTUM_API_KEY` is a secret and `DATABASE_URL` carries a password,
-  // and a startup log is the one place they would land in a platform's log stream unredacted.
+  // Every message names the offending variables and never their values; see the config modules. That
+  // matters most here: `MANUFACTUM_API_KEY` is a secret, `DATABASE_URL` carries a password, and
+  // `DATABASE_CA_CERT_PATH` names a file whose contents were just read into memory — a startup log is
+  // the one place any of them would land in a platform's log stream unredacted.
   console.error(
     JSON.stringify({
       level: "error",
@@ -70,6 +83,9 @@ function configurationFailure(load: () => unknown): string | null {
 }
 
 verifyConfigurationOrExit();
+
+// Safe to read unchecked: the startup check above has already proved it parses, and exits otherwise.
+const port = loadPort();
 
 /**
  * Enabled only when `TRUST_PROXY` is set, because the rate limiter counts against `request.ip`.
