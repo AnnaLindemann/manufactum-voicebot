@@ -1,0 +1,1481 @@
+{
+  "schemaVersion": "rag-baseline-evidence-chunk-mapping-v1",
+  "candidatePackage": {
+    "id": "mein-konto-v1-active-baseline-chunks",
+    "description": "Current active mein-konto v1 production chunk configuration before chunk variants.",
+    "gitCommit": "32e8ff571c9c3a26168d178473bea014831f8cbb",
+    "chunkingRecipe": "current-active-baseline-read-only"
+  },
+  "frozenInputs": {
+    "datasetPath": "tests/fixtures/rag/mein-konto-v1-development-evaluation-dataset.json",
+    "datasetSha256": "523464871475a6c921d7de7b75beb9591aea7261d8719dc4a180117fb1d82dbc",
+    "manifestPath": "tests/fixtures/rag/mein-konto-v1-development-evaluation-dataset.manifest.json",
+    "manifestSha256": "d08253c29bd67753009ee21b74df4bdfd3ef1674f1cecbca4d6a1b907027589f",
+    "evidenceInventoryPath": "tests/fixtures/rag/mein-konto-v1-semantic-evidence-inventory.draft.json",
+    "evidenceInventorySha256": "dd3554bb36ab6595dcaece3c885777d43005767f4733b17a2b0e7c91f9f13bb0"
+  },
+  "activeDocument": {
+    "documentKey": "mein-konto",
+    "currentVersion": 1,
+    "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+    "title": "Mein Konto",
+    "documentType": "account-faq",
+    "language": "de",
+    "contentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba"
+  },
+  "activeChunkSet": {
+    "id": "4d242fbda2b2ba827e3f7fef221346f4eee6f18151cb1f982bca8f727c4fd1cf",
+    "chunkCount": 12,
+    "orderedChunks": [
+      {
+        "chunkIndex": 1,
+        "chunkKey": "mein-konto:v1:chunk-001",
+        "chunkHash": "be23b8ee17fb1bc807a69f47de6504f60668cbac21dc52be75e66313b40a527c",
+        "embeddingInputHash": "b64b9d943f616698fde463db6eec9bd81fa39a84c550f96f50112f9ad024280f",
+        "embeddingChunkContentHash": "be23b8ee17fb1bc807a69f47de6504f60668cbac21dc52be75e66313b40a527c"
+      },
+      {
+        "chunkIndex": 2,
+        "chunkKey": "mein-konto:v1:chunk-002",
+        "chunkHash": "deda89a3686b07830fba6be995c2e6e2345ee8be127d6de2fe401869d38678f5",
+        "embeddingInputHash": "efc11b58ca2956d5ab45ec29644a6822f7a1d9bc9afcbc04333e2be9dfa4a37f",
+        "embeddingChunkContentHash": "deda89a3686b07830fba6be995c2e6e2345ee8be127d6de2fe401869d38678f5"
+      },
+      {
+        "chunkIndex": 3,
+        "chunkKey": "mein-konto:v1:chunk-003",
+        "chunkHash": "1cac010a3f6a5b16e6253b065c484d8b0dac6f94127b33db1f9ee7b312b443d4",
+        "embeddingInputHash": "d59f8654375d9463f634308fa1c5a91fc0a82a79148c1673d474d56a144c0357",
+        "embeddingChunkContentHash": "1cac010a3f6a5b16e6253b065c484d8b0dac6f94127b33db1f9ee7b312b443d4"
+      },
+      {
+        "chunkIndex": 4,
+        "chunkKey": "mein-konto:v1:chunk-004",
+        "chunkHash": "1b1b401a53ff7310b8fb431a0337a6970298eccf43dee33e8dc9a96900565e68",
+        "embeddingInputHash": "c3accf9004e8b5ead5718966a5f3ed24d36f04cfb4141af38d81eacbe9ce601e",
+        "embeddingChunkContentHash": "1b1b401a53ff7310b8fb431a0337a6970298eccf43dee33e8dc9a96900565e68"
+      },
+      {
+        "chunkIndex": 5,
+        "chunkKey": "mein-konto:v1:chunk-005",
+        "chunkHash": "3de499221102acbc51ae792ae908628e333b3158007a23f2df66c1514119deec",
+        "embeddingInputHash": "09a8bb19856836db062ce983d9b5623175fef5627336133d76d470cde783bf79",
+        "embeddingChunkContentHash": "3de499221102acbc51ae792ae908628e333b3158007a23f2df66c1514119deec"
+      },
+      {
+        "chunkIndex": 6,
+        "chunkKey": "mein-konto:v1:chunk-006",
+        "chunkHash": "7f10b96dc567907177930253f7625da8efcef4ce44bd5a7de2be4afd9e21fd91",
+        "embeddingInputHash": "b32d789af00c5b38a3df47bc241bd21901d1def41890ec4d69236436c669c6d0",
+        "embeddingChunkContentHash": "7f10b96dc567907177930253f7625da8efcef4ce44bd5a7de2be4afd9e21fd91"
+      },
+      {
+        "chunkIndex": 7,
+        "chunkKey": "mein-konto:v1:chunk-007",
+        "chunkHash": "0eb3c29d44c15f68d5387d8b5b8e1ed892cbef979df06d8d1a9cd1648eb56260",
+        "embeddingInputHash": "59eed2b8a0c67f90b1d3fb3b9415551bd3e6512e860079c72ea0b384482616dd",
+        "embeddingChunkContentHash": "0eb3c29d44c15f68d5387d8b5b8e1ed892cbef979df06d8d1a9cd1648eb56260"
+      },
+      {
+        "chunkIndex": 8,
+        "chunkKey": "mein-konto:v1:chunk-008",
+        "chunkHash": "3212b756775ca9498f1c951b05af7ec8fc5ac21dc8058c0e6df02e008c5cf550",
+        "embeddingInputHash": "a8e3319388650383ced775bcc6eff49c1e8a95db0215afd8838c9634833e876c",
+        "embeddingChunkContentHash": "3212b756775ca9498f1c951b05af7ec8fc5ac21dc8058c0e6df02e008c5cf550"
+      },
+      {
+        "chunkIndex": 9,
+        "chunkKey": "mein-konto:v1:chunk-009",
+        "chunkHash": "cdb7660daf88fe5570151cc6e8128ac6447f9dcb60c7584e6526ab9e6b45d32a",
+        "embeddingInputHash": "898d57ec9afea298c93ff1f74576a7d012d252921598bd7bd70ad869389ad2e6",
+        "embeddingChunkContentHash": "cdb7660daf88fe5570151cc6e8128ac6447f9dcb60c7584e6526ab9e6b45d32a"
+      },
+      {
+        "chunkIndex": 10,
+        "chunkKey": "mein-konto:v1:chunk-010",
+        "chunkHash": "bd4b847bba3cf5aa68b5132fa6d47c6e0c106cdf91751905d06908188568b393",
+        "embeddingInputHash": "31bd73fb0fe026298a1b299409ec52f7869b69e9c687a6850f14e579ab48d886",
+        "embeddingChunkContentHash": "bd4b847bba3cf5aa68b5132fa6d47c6e0c106cdf91751905d06908188568b393"
+      },
+      {
+        "chunkIndex": 11,
+        "chunkKey": "mein-konto:v1:chunk-011",
+        "chunkHash": "1184f6d85dfe33ea408f1f42ad159fe71359d3bd1e2f16c9262841c62d082df6",
+        "embeddingInputHash": "cc393809c9f8e05115c62f08158b93ce971ec7f432057928f517b4b1abfb9516",
+        "embeddingChunkContentHash": "1184f6d85dfe33ea408f1f42ad159fe71359d3bd1e2f16c9262841c62d082df6"
+      },
+      {
+        "chunkIndex": 12,
+        "chunkKey": "mein-konto:v1:chunk-012",
+        "chunkHash": "d1fea86098cd5104dbd7b257503dcb239194c78b8869ce8246dc9421be57b139",
+        "embeddingInputHash": "ebb1fa2e2693be70555509560c1d5c8c577d78366d34191b5a7304de6a1d86ac",
+        "embeddingChunkContentHash": "d1fea86098cd5104dbd7b257503dcb239194c78b8869ce8246dc9421be57b139"
+      }
+    ]
+  },
+  "mappingDerivation": {
+    "usesRetrievalScores": false,
+    "usesChunkCountAssumption": false,
+    "method": "For every evidence unit, compare normalized active chunk question and answer text to the accepted inventory normalized source question and answer text. Mark coverage full only on exact source-text equality."
+  },
+  "chunkMappings": [
+    {
+      "chunkKey": "mein-konto:v1:chunk-001",
+      "chunkIndex": 1,
+      "chunkHash": "be23b8ee17fb1bc807a69f47de6504f60668cbac21dc52be75e66313b40a527c",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "adeac0f96f97af9719fe06bd9e7d6ce1cc021bcfb493f9a49e2188572810d0ff",
+      "answerHash": "b09cbcebe458c35d7740a0fae44b3fd851c463d693cdfff69612d8e70b1cb71c",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-002",
+      "chunkIndex": 2,
+      "chunkHash": "deda89a3686b07830fba6be995c2e6e2345ee8be127d6de2fe401869d38678f5",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "a693b75a3d34cf6a09af3567473ad83a9e5f8419df671bd95c41fecb3a6b5085",
+      "answerHash": "e7cb8fc01759167c680d1e9f78e938ff52b302dcb0f11213c3244d30ed853a23",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-003",
+      "chunkIndex": 3,
+      "chunkHash": "1cac010a3f6a5b16e6253b065c484d8b0dac6f94127b33db1f9ee7b312b443d4",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "f950c9538ec0baa600e19482910db98fdc9a31ede17bdf50af5b2b6765c6bccb",
+      "answerHash": "48f64889325548de34e6c9527a12686d22a355c04baba41e56dfd0d7273b7277",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-004",
+      "chunkIndex": 4,
+      "chunkHash": "1b1b401a53ff7310b8fb431a0337a6970298eccf43dee33e8dc9a96900565e68",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "f08e254a60205d9b92915e654e947a5f49d6cad62ea62e19f2698d061a25065a",
+      "answerHash": "d14197d02ba5834c015bfb669f2b047ab35d33ea85bcbe388a6cf1ac0d55a98e",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-005",
+      "chunkIndex": 5,
+      "chunkHash": "3de499221102acbc51ae792ae908628e333b3158007a23f2df66c1514119deec",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "7fbfdb3e40a76505a7251587958f79294e2de9ebab316d61f3148259b22ed8ea",
+      "answerHash": "f6678a2b7ccabafbffd81ef40b76f7d14f80cf3ce684e263987e23954986c2a2",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-006",
+      "chunkIndex": 6,
+      "chunkHash": "7f10b96dc567907177930253f7625da8efcef4ce44bd5a7de2be4afd9e21fd91",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "4300ed48608b5499fb9f73ad8f642663188505c7e6e8b94addeeebf98abda846",
+      "answerHash": "f1c13212f7f979158892cc074c1388ae9596ac7ebf234c75f6c188b8f550fb5e",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-007",
+      "chunkIndex": 7,
+      "chunkHash": "0eb3c29d44c15f68d5387d8b5b8e1ed892cbef979df06d8d1a9cd1648eb56260",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "c3a5acc1bc7ca1e86b9a528e46fb55ad244eef622cf2fc507f80d683833ef001",
+      "answerHash": "106445cbe508a72187720255fde3f87d4b9c9011f2d4031ff7f4aedff0d43b4f",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-008",
+      "chunkIndex": 8,
+      "chunkHash": "3212b756775ca9498f1c951b05af7ec8fc5ac21dc8058c0e6df02e008c5cf550",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "3736a3b54a0b2b2bdd9c8ab29bb5e23bba6d7798eeca7403389076d9c96adf23",
+      "answerHash": "96082bb97ef2ca7474216fee7e93bb3a8d3be0d57897b2509e54fac65885f49b",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-009",
+      "chunkIndex": 9,
+      "chunkHash": "cdb7660daf88fe5570151cc6e8128ac6447f9dcb60c7584e6526ab9e6b45d32a",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "0d4b1ff3195cb867f7144eb9cf3764941b327d40acded8641f7ba4e1fe509270",
+      "answerHash": "841a764fc810ff6accc446617f23db41f74f48cc69d45c514551347ea9366308",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-010",
+      "chunkIndex": 10,
+      "chunkHash": "bd4b847bba3cf5aa68b5132fa6d47c6e0c106cdf91751905d06908188568b393",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "ff621ef819a60fa0e5b03db5974bd973bf7864128db53215a18e3f6053f8b237",
+      "answerHash": "ee90c8b6b9421773a5fef1ece7df6ff645490b1c5ae9cfa7bd97e08048df2b46",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-011",
+      "chunkIndex": 11,
+      "chunkHash": "1184f6d85dfe33ea408f1f42ad159fe71359d3bd1e2f16c9262841c62d082df6",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "8c0c6a3e4aae8c5ef63d344138b4e806198425148f3bc20e9e8de014ac88ca92",
+      "answerHash": "8c68a2980eb686f4f41fd476299da970e06083c34dd6c7caefe10a30686e76ac",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        }
+      ]
+    },
+    {
+      "chunkKey": "mein-konto:v1:chunk-012",
+      "chunkIndex": 12,
+      "chunkHash": "d1fea86098cd5104dbd7b257503dcb239194c78b8869ce8246dc9421be57b139",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "questionHash": "18eaded1367c2806a9f5dd2635f52df2d2dbde466078b5c0f09c0a972f11e5c5",
+      "answerHash": "768aa97d35aab27ee1619c4cdb7d427fb58efa14325e72356d0af81ebb28d20a",
+      "evidenceCoverage": [
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+          "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+          "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+          "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+          "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+          "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+          "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+          "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+          "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+          "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+          "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+          "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+          "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+          "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+          "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+          "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+          "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+          "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+          "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+          "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+          "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+          "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+          "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+          "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+          "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+          "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+          "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+          "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+          "coverageStatus": "none",
+          "derivation": "Active chunk question and answer do not fully match this inventory source evidence."
+        },
+        {
+          "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+          "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+          "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+          "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+          "coverageStatus": "full",
+          "derivation": "Exact normalized active chunk question and answer match the inventory source evidence question and answer."
+        }
+      ]
+    }
+  ],
+  "evidenceMappings": [
+    {
+      "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+      "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-001"]
+    },
+    {
+      "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+      "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-002"]
+    },
+    {
+      "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+      "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-003"]
+    },
+    {
+      "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+      "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-004"]
+    },
+    {
+      "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+      "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-005"]
+    },
+    {
+      "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+      "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-006"]
+    },
+    {
+      "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+      "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-007"]
+    },
+    {
+      "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+      "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-008"]
+    },
+    {
+      "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+      "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-009"]
+    },
+    {
+      "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+      "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-010"]
+    },
+    {
+      "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+      "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-011"]
+    },
+    {
+      "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+      "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+      "fullCoverageChunkKeys": ["mein-konto:v1:chunk-012"]
+    }
+  ]
+}
