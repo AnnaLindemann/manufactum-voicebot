@@ -1,0 +1,622 @@
+{
+  "schemaVersion": "rag-semantic-evidence-inventory-draft-v1",
+  "reviewStatus": "draft",
+  "independentReviewStatus": "not_reviewed",
+  "freezeStatus": "not_frozen",
+  "scope": {
+    "faqCategory": "account-faq",
+    "documentKey": "mein-konto",
+    "documentVersion": 1,
+    "documentType": "account-faq",
+    "language": "de",
+    "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+    "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+    "sourceRegistry": "docs/source-registry.md#mein-konto--account-faq",
+    "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+    "approvedFaqItemCount": 12,
+    "activeChunkCountObservedReadOnly": 12
+  },
+  "namingConvention": {
+    "faqIntentId": "{faqCategory}:{canonicalQuestionSlug}; slug is derived from the approved v1 FAQ question after NFC normalization, lowercase, ä->ae, ö->oe, ü->ue, ß->ss, non [a-z0-9] collapsed to single hyphen, and edge hyphens trimmed.",
+    "evidenceId": "{faqIntentId}:evidence:primary for the single minimal source span that fully answers the intent in this v1 corpus.",
+    "documentKey": "Exact approved source-registry document_key.",
+    "documentVersion": "Exact active immutable document version number observed read-only in rag_documents.current_version.",
+    "sourceSpanSelector": "Object with selectorType manufactum-faq-accordion-aria-v1, accordion item data-test selector, heading selector, answer role-region selector, and aria-controls value; no chunk key, chunk index, or candidate boundary is part of the selector."
+  },
+  "hashing": {
+    "hashAlgorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "canonicalization": "Recursive lexicographic sorting of object keys, preserved array order, no insignificant whitespace, UTF-8 serialization.",
+    "supportingSourceSpanHashType": "supporting-source-span:v1",
+    "supportingSourceSpanHashInput": "Deterministic canonical JSON with sorted object keys over exactly {\"normalizedSourceSpan\":{\"answer\":<normalized source answer content in original source order>,\"question\":<normalized source question>}}. This input contains only normalized source text and no IDs, URLs, selectors, category, metadata, chunk data, candidate data, or retrieval configuration.",
+    "semanticEvidenceRecordHashType": "semantic-evidence-source-span:v1",
+    "semanticEvidenceHashInput": "Deterministic canonical JSON with sorted object keys over hashType, faqCategory, faqIntentId, evidenceId, documentKey, documentVersion, sourceUrl, sourceSpanSelector, and normalizedSemanticEvidence.",
+    "hashType": "semantic-evidence-source-span:v1",
+    "hashTypeNote": "Legacy alias for semanticEvidenceRecordHashType, retained so the existing semanticEvidenceHash values remain reproducible.",
+    "hashDistinctions": {
+      "supportingSourceSpanHash": "Source-span content hash over normalized source question and normalized source answer only.",
+      "semanticEvidenceHash": "Full semantic evidence-record hash over evidence identity, document identity, URL, selector, and normalized evidence text.",
+      "candidateChunkContentHash": "Candidate-specific prepared chunk content hash; not used as stable semantic ground truth."
+    }
+  },
+  "relationshipPolicy": {
+    "defaultRelationship": "one_intent_to_one_primary_evidence",
+    "acceptableEvidenceRule": "For this draft inventory each intent has exactly one expected and acceptable evidence ID. Related or overlapping FAQ text is not acceptable unless it fully answers the intent."
+  },
+  "intents": [
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren",
+      "evidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-0\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-0",
+        "ariaControls": "option-0"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie kann ich mich bei Manufactum registrieren?",
+        "answer": "Im Login-Bereich unter „Kundenkonto“ können Sie das Registrierungsformular ausfüllen und ein Konto erstellen. Sie können Ihr Konto auch während Ihrer ersten Bestellung einrichten. Nach der Registrierung sind Sie sofort in Ihrem Konto angemeldet und können dort Ihre Angaben prüfen. Im Anschluss an Ihre Registrierung erhalten Sie eine Bestätigungs-E-Mail und können sich danach mit Ihrer E-Mail-Adresse und Ihrem persönlichen Passwort anmelden."
+      },
+      "supportingSourceSpanHash": "cfd8cc11794bf566317f2ea7f8458e112b2069f3d114f755d37590a838705f61",
+      "semanticEvidenceHash": "32c549e8ed5f95f5a09a6956de603abb9000b4781320f52ae8be8b9754a1156d",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:welche-vorteile-bietet-mir-ein-konto",
+      "evidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-1\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-1",
+        "ariaControls": "option-1"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Welche Vorteile bietet mir ein Konto?",
+        "answer": "Mit einem Konto genießen Sie die folgenden Vorteile:\n• Sie können Ihr Passwort und Ihre E-Mail-Adresse für die Anmeldung im Konto jederzeit selbst ändern.\n• Sie können Onlinebestellungen einsehen, inklusive Sendungsverfolgung und Onlinerechnung.\n• Sie können bei Bedarf das Rücksendeetikett zu Ihrer Bestellung selbstständig erstellen und drucken.\n• Sie können mehrere Lieferadressen hinterlegen. Ihre persönlichen Daten sind für zukünftige Bestellungen direkt gespeichert.\n• Sie können prüfen, wie viel Guthaben Sie auf Ihrem Warengutschein haben.\n• Sie können sich bequem zu unserem Newsletter an- und abmelden."
+      },
+      "supportingSourceSpanHash": "76bfdd094d32bd55d2d9ea6f4f1ceddc2ee2a38df7dcaa150157b060cee2bf03",
+      "semanticEvidenceHash": "a99779691b00acefbb295f3285dd205c7b0df49c31f8dc3b786449c9e0637b5c",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:welche-vorteile-bietet-mir-ein-konto:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wo-finde-ich-meine-kundennummer",
+      "evidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-2\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-2",
+        "ariaControls": "option-2"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wo finde ich meine Kundennummer?",
+        "answer": "Ihre Kundennummer finden Sie innerhalb Ihres Kontos im Bereich „Persönliche Angaben“ sowie oben rechts auf Ihrer Rechnung."
+      },
+      "supportingSourceSpanHash": "5911903bfc618c53691f3540b69ae7c7d3862745c37bdf0fb2f7a0d492dffb75",
+      "semanticEvidenceHash": "8058b5c6351012e80a57b63ae8de766fde3ea13c96bc76209400f9629c3c1b38",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wo-finde-ich-meine-kundennummer:evidence:primary",
+        "acceptableEvidenceIds": ["account-faq:wo-finde-ich-meine-kundennummer:evidence:primary"],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern",
+      "evidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-3\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-3",
+        "ariaControls": "option-3"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie kann ich meine E-Mail-Adresse ändern?",
+        "answer": "Wenn Sie Ihre E-Mail-Adresse ändern möchten, können Sie innerhalb Ihres Kontos im Bereich „E-Mail-Adresse ändern“ ganz einfach eine neue E-Mail-Adresse hinterlegen."
+      },
+      "supportingSourceSpanHash": "ad37170379d27f1db59a0699c3197f06bccaaa8df0849e29d9c4aeb6d51b2060",
+      "semanticEvidenceHash": "2267fc44ab5a9db7ff69bdcfcdc242f8895f4b26d77a3f4aceffadd3ebc3382a",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun",
+      "evidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-4\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-4",
+        "ariaControls": "option-4"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Ich möchte mein Passwort ändern, was kann ich tun?",
+        "answer": "Wenn Sie Ihr Passwort ändern möchten, können Sie innerhalb Ihres Kontos im Bereich „Passwort ändern“ ein neues Passwort hinterlegen. Bitte achten Sie darauf, ein möglichst kompliziertes Passwort zu vergeben und dieses nicht für mehrere Konten zu verwenden."
+      },
+      "supportingSourceSpanHash": "8a3fe38ff61b21962f6df5f86bd676766323452dd9252ac685a296689c82caf5",
+      "semanticEvidenceHash": "23d04f090247ad7a81f8c079ef0ab0c972c0cab7ab99eef59e0fe791a3ad81fd",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun",
+      "evidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-5\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-5",
+        "ariaControls": "option-5"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Ich habe mein Passwort vergessen, was kann ich tun?",
+        "answer": "Falls Sie Ihr Passwort vergessen haben, klicken Sie bitte im Login-Bereich oder hier auf den Link Passwort vergessen und tragen Ihre im Konto hinterlegte E-Mail-Adresse ein. Nachdem Sie den Button „E-Mail absenden“ angeklickt haben, erhalten Sie umgehend eine E-Mail, über die Sie ein neues Passwort vergeben können."
+      },
+      "supportingSourceSpanHash": "da25b2480025c2e4dde520ee5bcf99838397968c7bd1fb220abe8cb1fdff77b8",
+      "semanticEvidenceHash": "a87ae6e28e311f4f2e91a4084e774e6dc0e4c697f77825be882d4de81b839c1f",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-nutze-ich-die-merkliste",
+      "evidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-6\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-6",
+        "ariaControls": "option-6"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie nutze ich die Merkliste?",
+        "answer": "Auf der Merkliste können Sie beliebig viele Artikel speichern, um sie bei einem späteren Besuch in unserem Onlineshop sofort wiederzufinden. Verwenden Sie hierzu den Button „Merken“, den Sie unterhalb des Bestellbuttons an jedem Produkt finden. Alternativ können Sie auch Produkte aus dem Warenkorb auf die Merkliste verschieben. Die Liste ist so lange aktiv, wie die Cookies in Ihrem Browser nicht gelöscht werden. Wenn Sie mit Ihrem Konto angemeldet sind, wird die Merkliste im Konto gespeichert und Sie können diese auch bei einem Besuch von einem anderen Gerät oder Browser aus wieder aufrufen."
+      },
+      "supportingSourceSpanHash": "e99540aef09e82f54305dbb5410bf306619dcb8dee9876027730c8eac01e5cad",
+      "semanticEvidenceHash": "de1efc921a552df234dc676943a117f6350c16b1f22b768bd3fafae2b2fba340",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-nutze-ich-die-merkliste:evidence:primary",
+        "acceptableEvidenceIds": ["account-faq:wie-nutze-ich-die-merkliste:evidence:primary"],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen",
+      "evidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-7\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-7",
+        "ariaControls": "option-7"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Kann ich meine Merkliste mit anderen teilen?",
+        "answer": "Sie können Ihre Merkliste mit einem Link zu einer „Wunschliste“ mit anderen teilen. Klicken Sie dazu in der geöffneten Merkliste auf den Button „Merkliste mit anderen teilen“. Dadurch wird eine neue Wunschliste mit den Artikeln von Ihrer Merkliste zum Zeitpunkt des Teilens und ein dazugehöriger Link erstellt. Es öffnet sich ein Dialogfeld, in dem Sie den Link kopieren können. Je nach verwendetem Browser können Sie zudem eine App zum Teilen des Links auswählen.\nBitte beachten Sie:Die geteilte Wunschliste kann nach dem Versenden an die Empfänger nicht von Ihnen geändert oder vor Ablauf der Gültigkeitsdauer des Links zurückgerufen werden. Ab Erstellung des Links bleibt die Wunschliste für einen Zeitraum von 6 Monaten aktiv und wird danach gelöscht.\nÄnderungen an Ihrer persönlichen Merkliste werden nicht an die Empfänger der geteilten Wunschliste übermittelt. Es erfolgt bei einem Kauf eines Artikels von der geteilten Wunschliste keine Information an Sie oder die Empfänger. Ein gekaufter Artikel wird nicht von der geteilten Wunschliste oder Ihrer persönlichen Merkliste entfernt."
+      },
+      "supportingSourceSpanHash": "b6dde59ca33ac3da8bf637f20d62ad68f74220304de21e8e832f402d9f1fce40",
+      "semanticEvidenceHash": "b15255c8cb00e310154c9082b274a7f409936fdd06d6c0f00d2fbc6062e38f52",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste",
+      "evidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-8\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-8",
+        "ariaControls": "option-8"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie funktioniert die mit mir geteilte Wunschliste?",
+        "answer": "Die geteilte Wunschliste zeigt den Stand zum Zeitpunkt des Teilens der Merkliste durch den Absender. Änderungen durch Sie, den Absender oder andere Empfänger sind nicht möglich. Sie können Artikel von der Wunschliste in Ihren Warenkorb legen und bestellen. Der Artikel wird dadurch nicht von der Wunschliste gelöscht.\nWenn Sie einen Artikel von der geteilten Wunschliste auf Ihre persönliche Merkliste setzen wollen, müssen Sie den Artikel zunächst in Ihren Warenkorb legen und von dort auf die Merkliste verschieben.\nBitte beachten Sie:Ab Erstellung des Links zu einer geteilten Merkliste sind der Link und die geteilte Merkliste 6 Monate gültig. Nach diesem Zeitraum wird die mit Ihnen geteilte Merkliste gelöscht und kann von Ihnen nicht mehr aufgerufen werden."
+      },
+      "supportingSourceSpanHash": "e0943ad834734a71bcfa687eac8fbd153c4f335d9d9eddae55b28dda6f94ee10",
+      "semanticEvidenceHash": "c7eb248448dd736b01783113a2f2b9d7f839f56984c7caf6bb811d10334975d5",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren",
+      "evidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-9\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-9",
+        "ariaControls": "option-9"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie kann ich den Manufactum Newsletter abonnieren?",
+        "answer": "Wenn Sie bereits als Kund*in registriert sind, haben Sie die Möglichkeit, den Newsletter innerhalb Ihres Kontos im Bereich „Newsletter“ zu abonnieren. Sollten Sie kein Konto haben, können Sie entweder das Formular im unteren Bereich unserer Webseite nutzen oder sich hier anmelden."
+      },
+      "supportingSourceSpanHash": "6b5919a1a332c62e04001c1927186d6b2791c838a44bb1c840b2ca985228dae4",
+      "semanticEvidenceHash": "0f56c67da3ec2766c93e579b318d72761e6ef73ceaa5dc9820ff4b9781f1ca1d",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden",
+      "evidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-10\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-10",
+        "ariaControls": "option-10"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie kann ich mich vom Manufactum Newsletter abmelden?",
+        "answer": "Um sich von unserem Newsletter abzumelden, nutzen Sie bitte die Option „Newsletter abbestellen“ am Ende des Newsletters. Wenn Sie bereits als Kund*in registriert sind, haben Sie außerdem die Möglichkeit, den Newsletter innerhalb Ihres Kontos im Bereich „Newsletter“ abzubestellen. Sollten Sie Probleme bei der Abmeldung haben, wenden Sie sich gern an unseren Customer Service."
+      },
+      "supportingSourceSpanHash": "5b3ff85a1aebaf228ebaf71883f1b9c6f2ef15900b4bd2ee4e662b5871729e7e",
+      "semanticEvidenceHash": "61e02c307182cf927995a095b581d8b4c4b9160d6f4119fcd2de169a4db59f68",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    },
+    {
+      "faqCategory": "account-faq",
+      "faqIntentId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen",
+      "evidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceSpanSelector": {
+        "selectorType": "manufactum-faq-accordion-aria-v1",
+        "contentSelector": "[data-test-sell-element-accordion-element]",
+        "accordionItemSelector": "[data-test-sell-element-accordion-element=\"option-11\"]",
+        "questionSelector": "[data-test-sell-accordion-item-heading]",
+        "answerSelector": "div[role=\"region\"]#option-11",
+        "ariaControls": "option-11"
+      },
+      "normalizedSemanticEvidence": {
+        "question": "Wie kann ich mein Kundenkonto löschen?",
+        "answer": "Wenden Sie sich bitte per E-Mail an unseren Customer Service. Für eine schnelle Bearbeitung schreiben Sie bitte als Betreff „Löschung Kundenkonto“."
+      },
+      "supportingSourceSpanHash": "c23c2603a643f47083b5e594ab974ab9c13aceced6485660fd28f209583f40f2",
+      "semanticEvidenceHash": "c3e85004de623279685f34be7d1b827a5356ed82614a7cbc033b2b4ed6b10d2e",
+      "semanticEvidenceHashInputCanonicalization": "canonical-json-sorted-keys:utf8",
+      "intentEvidenceRelationship": {
+        "relationship": "expected_and_only_acceptable_evidence",
+        "expectedEvidenceId": "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary",
+        "acceptableEvidenceIds": [
+          "account-faq:wie-kann-ich-mein-kundenkonto-loeschen:evidence:primary"
+        ],
+        "rationale": "The selected FAQ question and its paired answer are the minimal approved source span that fully answers this intent."
+      },
+      "sourceProvenance": {
+        "sourceRegistryEntry": "docs/source-registry.md#mein-konto--account-faq",
+        "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+        "sourceDocumentContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+        "pageTitle": "Mein Konto",
+        "documentType": "account-faq",
+        "language": "de",
+        "extractorSelectors": {
+          "pageTitle": "h1[data-test-stelar-headline]",
+          "content": "[data-test-sell-element-accordion-element]",
+          "question": "[data-test-sell-accordion-item-heading]",
+          "answer": "div[role=\"region\"]"
+        },
+        "extractorVersionObservedReadOnly": "manufactum-faq-accordion/1.0.0",
+        "crawlerVersionObservedReadOnly": "manufactum-static-fetch/1.0.0"
+      }
+    }
+  ],
+  "draftFindings": {
+    "duplicateIntentIds": [],
+    "duplicateEvidenceIds": [],
+    "duplicateCanonicalQuestions": [],
+    "duplicateNormalizedSemanticEvidenceHashes": [],
+    "overlappingIntentNotes": [
+      "account benefits mentions several specific account capabilities also covered by separate FAQ intents; it is acceptable only for broad benefits queries, not as evidence for specific how-to intents.",
+      "password change and forgotten-password recovery are adjacent but have distinct required actions.",
+      "wishlist sharing and shared wishlist usage are adjacent but describe opposite roles.",
+      "newsletter subscription and unsubscription are adjacent but describe opposite actions."
+    ],
+    "ambiguousIntentNotes": [],
+    "missingEvidence": []
+  }
+}
