@@ -1,0 +1,228 @@
+{
+  "schemaVersion": "rag-evaluation-dataset-manifest-v1",
+  "datasetVersion": "mein-konto-v1-development-v1",
+  "freezeStatus": "frozen",
+  "dataset": "development",
+  "language": "de",
+  "datasetPath": "tests/fixtures/rag/mein-konto-v1-development-evaluation-dataset.json",
+  "datasetJsonSha256": "523464871475a6c921d7de7b75beb9591aea7261d8719dc4a180117fb1d82dbc",
+  "governingSpecification": {
+    "path": "docs/rag-evaluation-dataset-specification.md",
+    "sha256": "5be70456b394b6dbe147c05437aec1cd7eeed515aa4e3c69a06ada32f3cc8c92"
+  },
+  "datasetScope": {
+    "source": "mein-konto",
+    "faqCategory": "account-faq",
+    "documentKey": "mein-konto",
+    "documentType": "account-faq",
+    "documentVersion": 1,
+    "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+    "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+    "sourceContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba",
+    "approvedFaqItemCount": 12,
+    "totalRecords": 96
+  },
+  "sourceRegistryRevision": {
+    "path": "docs/source-registry.md",
+    "anchor": "docs/source-registry.md#mein-konto--account-faq",
+    "gitCommit": "1d93ff37c2d9c19deb833e8fe8d417ef976201a0",
+    "sha256": "7be4199fffd1e1a3f419fec7bcf9d663ddc01d7e24d12321539332faf8ea17be"
+  },
+  "approvedSourceDocumentVersions": [
+    {
+      "documentKey": "mein-konto",
+      "documentVersion": 1,
+      "documentType": "account-faq",
+      "faqCategory": "account-faq",
+      "sourceUrl": "https://www.manufactum.de/konto-c201130/",
+      "sourceFixture": "tests/fixtures/rag/konto-c201130.html",
+      "sourceContentHash": "ad0d265794468bcb0f7a4732973dbacc29a8512df40370c21a4e801bc93a3eba"
+    }
+  ],
+  "semanticEvidenceInventory": {
+    "path": "tests/fixtures/rag/mein-konto-v1-semantic-evidence-inventory.draft.json",
+    "schemaVersion": "rag-semantic-evidence-inventory-draft-v1",
+    "sha256": "dd3554bb36ab6595dcaece3c885777d43005767f4733b17a2b0e7c91f9f13bb0",
+    "faqIntentCount": 12,
+    "relationshipPolicy": "one_intent_to_one_primary_evidence"
+  },
+  "leakageCheck": {
+    "method": "Independent semantic audit of all 96 development records using the accepted mein-konto v1 semantic evidence inventory and source fixture; normalized query uniqueness checked inside the development dataset. Historical 52-query dataset and held-out data were not opened, copied, compared, or used in this checkpoint.",
+    "result": "accepted_for_development_dataset_freeze_with_no_historical_or_held_out_query_access_in_this_checkpoint",
+    "reviewedRecordCount": 96,
+    "correctedBlockerIds": [
+      "mein-konto-v1-dev-023",
+      "mein-konto-v1-dev-053",
+      "mein-konto-v1-dev-066"
+    ],
+    "rejectedDuplicates": [],
+    "historical52QueryDatasetUsed": false,
+    "heldOutDataUsed": false,
+    "modelOutputInspectionUsed": false
+  },
+  "brandTokenComputation": {
+    "method": "Standalone token match: /(^|[^A-Za-zÄÖÜäöüß])Manufactum([^A-Za-zÄÖÜäöüß]|$)/u computed from final query strings.",
+    "targetShare": "25%",
+    "requiredImmediateDevelopmentCounts": {
+      "total": 24,
+      "answerable": 18,
+      "unanswerable": 6
+    },
+    "observedCounts": {
+      "total": 24,
+      "answerable": 18,
+      "unanswerable": 6,
+      "byQueryType": {
+        "exact": 3,
+        "paraphrased": 6,
+        "short": 3,
+        "conversational": 3,
+        "ambiguous_answerable": 3,
+        "hard_negative": 5,
+        "irrelevant": 1
+      },
+      "byFaqIntentId": {
+        "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren": 3,
+        "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren": 4,
+        "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden": 3,
+        "account-faq:welche-vorteile-bietet-mir-ein-konto": 2,
+        "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern": 1,
+        "account-faq:wie-nutze-ich-die-merkliste": 1,
+        "account-faq:wie-kann-ich-mein-kundenkonto-loeschen": 2,
+        "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste": 2
+      }
+    }
+  },
+  "counts": {
+    "queryType": {
+      "exact": 12,
+      "paraphrased": 24,
+      "short": 12,
+      "conversational": 12,
+      "ambiguous_answerable": 12,
+      "hard_negative": 18,
+      "irrelevant": 6
+    },
+    "answerability": {
+      "answerable": 72,
+      "unanswerable": 24
+    },
+    "category": {
+      "account-faq": 90,
+      "null": 6
+    },
+    "perIntentDistribution": {
+      "account-faq:wie-kann-ich-mich-bei-manufactum-registrieren": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:welche-vorteile-bietet-mir-ein-konto": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wo-finde-ich-meine-kundennummer": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-kann-ich-meine-e-mail-adresse-aendern": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:ich-moechte-mein-passwort-aendern-was-kann-ich-tun": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:ich-habe-mein-passwort-vergessen-was-kann-ich-tun": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-nutze-ich-die-merkliste": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:kann-ich-meine-merkliste-mit-anderen-teilen": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-funktioniert-die-mit-mir-geteilte-wunschliste": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-kann-ich-den-manufactum-newsletter-abonnieren": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-kann-ich-mich-vom-manufactum-newsletter-abmelden": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      },
+      "account-faq:wie-kann-ich-mein-kundenkonto-loeschen": {
+        "totalAnswerable": 6,
+        "exact": 1,
+        "paraphrased": 2,
+        "short": 1,
+        "conversational": 1,
+        "ambiguous_answerable": 1
+      }
+    }
+  },
+  "review": {
+    "labeler": "codex",
+    "reviewer": "codex-independent-audit-2026-07-27",
+    "reviewMethod": "separate-agent review",
+    "reviewStatus": "approved",
+    "approvedAt": "2026-07-27T07:13:52.000Z",
+    "summary": "All 96 records received a full independent semantic audit. The audit found three answerable wording blockers, which were corrected in mein-konto-v1-dev-023, mein-konto-v1-dev-053, and mein-konto-v1-dev-066. The corrected dataset was accepted before freeze."
+  },
+  "freeze": {
+    "frozenAt": "2026-07-27T07:13:52.000Z",
+    "frozenBy": "codex",
+    "baseGitCommit": "1d93ff37c2d9c19deb833e8fe8d417ef976201a0",
+    "acceptedDraftSha256": "cf42cfef142a36ba0538d4a55c5eb600e76602f7fb79bc6098a4a1b0b827ba67",
+    "note": "Dataset metadata changed during freeze, so the accepted draft SHA-256 is recorded as provenance only and is not reused as the final dataset SHA-256."
+  }
+}
