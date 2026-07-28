@@ -355,3 +355,78 @@ describe("server startup RAG rate-limit validation", () => {
     expect(output).toContain("listening");
   }, 20_000);
 });
+
+/**
+ * Which runtime computes the query embedding is chosen once, at startup, from configuration. A
+ * release that names a runtime which does not exist, or asks for the hosted one without a
+ * credential, must fail the deploy — the alternative is a service that boots, reports healthy, and
+ * answers every retrieval call with an INTERNAL_ERROR, which is exactly the failure the startup
+ * check exists to prevent.
+ */
+const HF_TOKEN_FIXTURE = "hf_startup-test-token-never-real";
+
+describe("server startup query embedding provider validation", () => {
+  it("exits non-zero for an unknown provider instead of guessing", async () => {
+    const { exitCode, output } = await startServer({
+      ...COMPLETE_ENV,
+      RAG_QUERY_EMBEDDING_PROVIDER: "openai",
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain("startup_configuration_invalid");
+    expect(output).toContain("RAG_QUERY_EMBEDDING_PROVIDER");
+    expect(output).not.toContain("listening");
+  }, 20_000);
+
+  it("exits non-zero when the hosted provider is requested without a credential", async () => {
+    const { exitCode, output } = await startServer({
+      ...COMPLETE_ENV,
+      RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain("HF_TOKEN");
+  }, 20_000);
+
+  it("exits non-zero when the hosted provider's timeout is set but malformed", async () => {
+    const { exitCode, output } = await startServer({
+      ...COMPLETE_ENV,
+      RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+      HF_TOKEN: HF_TOKEN_FIXTURE,
+      HF_EMBEDDING_TIMEOUT_MS: "sofort",
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain("HF_EMBEDDING_TIMEOUT_MS");
+  }, 20_000);
+
+  it("starts with the hosted provider configured, without contacting it", async () => {
+    const { output } = await startServer({
+      ...COMPLETE_ENV,
+      RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+      HF_TOKEN: HF_TOKEN_FIXTURE,
+    });
+
+    // Presence and shape only: no endpoint is called and no model is loaded on the boot path.
+    expect(output).toContain("listening");
+    expect(output).not.toContain("startup_configuration_invalid");
+  }, 20_000);
+
+  it("starts unchanged when no provider is selected, keeping the local baseline", async () => {
+    const { output } = await startServer(COMPLETE_ENV);
+
+    expect(output).toContain("listening");
+  }, 20_000);
+
+  it("never prints the credential while reporting a configuration failure", async () => {
+    const { output } = await startServer({
+      ...COMPLETE_ENV,
+      RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+      HF_TOKEN: HF_TOKEN_FIXTURE,
+      HF_EMBEDDING_TIMEOUT_MS: "-1",
+    });
+
+    expect(output).toContain("HF_EMBEDDING_TIMEOUT_MS");
+    expect(output).not.toContain(HF_TOKEN_FIXTURE);
+  }, 20_000);
+});

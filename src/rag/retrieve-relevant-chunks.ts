@@ -4,7 +4,7 @@ import {
   embeddingProfileModelRef,
   type RagEmbeddingProfile,
 } from "./embedding-profile.js";
-import type { QueryEmbeddingGenerator } from "./e5-passage-embeddings.js";
+import type { QueryEmbeddingProvider } from "./query-embedding-provider.js";
 import { RagRetrievalError } from "./retrieval-errors.js";
 
 export type RetrieveRelevantChunksOptions = {
@@ -15,9 +15,14 @@ export type RetrieveRelevantChunksOptions = {
 
 export type RetrievedRelevantChunk = RelevantChunkSearchResult;
 
+/**
+ * The parameter is the narrow `QueryEmbeddingProvider` seam rather than the local generator type:
+ * this function reads one field of the result, and widening it here is what lets the hosted runtime
+ * be substituted without touching a line of the retrieval logic below.
+ */
 export async function retrieveRelevantChunks(
   store: RagDocumentStore,
-  generator: QueryEmbeddingGenerator,
+  generator: QueryEmbeddingProvider,
   query: string,
   options: RetrieveRelevantChunksOptions,
 ): Promise<RetrievedRelevantChunk[]> {

@@ -1,8 +1,8 @@
 import { toRagQueryResponse, type RagQuery, type RagQueryResponse } from "../domain/rag-query.js";
 import { AppError } from "../errors/app-error.js";
 import type { RagDocumentStore } from "../rag/document-store.js";
-import type { QueryEmbeddingGenerator } from "../rag/e5-passage-embeddings.js";
 import { RagEmbeddingError } from "../rag/e5-passage-embeddings.js";
+import type { QueryEmbeddingProvider } from "../rag/query-embedding-provider.js";
 import { retrieveRelevantChunks } from "../rag/retrieve-relevant-chunks.js";
 import { RagRetrievalError } from "../rag/retrieval-errors.js";
 import type { Logger } from "../logging/logger.js";
@@ -29,7 +29,12 @@ import type { RequestContext } from "../observability/request-context.js";
 /** What the use case needs. The infrastructure module decides how these are built. */
 export type RagRetrievalDependencies = {
   store: RagDocumentStore;
-  generator: QueryEmbeddingGenerator;
+  /**
+   * Whichever query-embedding runtime the operator configured. The service neither knows nor can
+   * discover which one it is: both produce the same validated 384-dimensional vector, and the
+   * retrieval path below is identical for either.
+   */
+  generator: QueryEmbeddingProvider;
   retrieval: {
     maxChunks: number;
     minScore: number;

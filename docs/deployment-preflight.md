@@ -20,23 +20,27 @@ Nothing else exists.
 
 The complete inventory read by the running process. There are no others.
 
-| Variable                         | Required              | Default         | Read where                             | Set on Render?                    | Notes                                                                                                                                                         |
-| -------------------------------- | --------------------- | --------------- | -------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                           | no                    | `3000`          | `src/config/port-config.ts`            | **No — Render injects it**        | Validated when present: an integer from 1 to 65535. `0`, a negative, a fractional, or a non-numeric value exits non-zero. Empty is treated as unset.          |
-| `MANUFACTUM_API_BASE_URL`        | yes                   | —               | `src/config/manufactum-config.ts`      | yes                               | Must parse as a URL. Test-environment base URL.                                                                                                               |
-| `MANUFACTUM_API_KEY`             | yes                   | —               | `src/config/manufactum-config.ts`      | yes, as a secret                  | **Secret.** Test credential only.                                                                                                                             |
-| `MANUFACTUM_API_KEY_HEADER`      | yes                   | —               | `src/config/manufactum-config.ts`      | yes                               | Header name the key is sent under. Not itself secret, but paired.                                                                                             |
-| `MANUFACTUM_API_TIMEOUT_MS`      | no                    | `8000`          | `src/config/manufactum-config.ts`      | optional                          | Set-but-malformed fails loudly; unset takes the default.                                                                                                      |
-| `TRUST_PROXY`                    | no                    | off             | `src/server.ts`                        | **yes — `1`**                     | Express `trust proxy`. Render terminates TLS at its own proxy, so without this every caller shares one bucket and both limits become global. See `D-018`.     |
-| `DATABASE_URL`                   | yes                   | —               | `src/config/rag-retrieval-config.ts`   | yes, as a secret                  | **Secret** (carries a password). PostgreSQL + pgvector, for `POST /api/rag/query`. Presence is checked at startup; no connection is opened there.             |
-| `DATABASE_SSL_MODE`              | no (but see §1a)      | driver default  | `src/config/database-ssl.ts`           | **yes — `verify-full`**           | `disable`, `require`, or `verify-full`. Unset passes no `ssl` option, leaving the connection string's own `sslmode` to govern. An unknown value fails loudly. |
-| `DATABASE_CA_CERT_PATH`          | when `verify-full`    | —               | `src/config/database-ssl.ts`           | **yes — Render Secret File path** | Path to the provider's PEM CA bundle. Read once at startup; missing, unreadable, or non-PEM fails the deploy. Contents are never logged.                      |
-| `RAG_RETRIEVAL_MIN_SCORE`        | no                    | `0.8`           | `src/config/rag-retrieval-config.ts`   | no                                | Minimum cosine similarity. Set-but-malformed or outside `0..1` fails loudly; unset takes the provisional default.                                             |
-| `RAG_EMBEDDING_LOCAL_FILES_ONLY` | no                    | off             | `src/config/rag-retrieval-config.ts`   | **not initially** — see §2b       | `true` forces the embedding runtime to use only cached model files. Only after a warmed runtime cache is verified.                                            |
-| `TRANSFORMERS_CACHE`             | no                    | library default | `src/config/rag-retrieval-config.ts`   | recommended — see §2b             | Where the pinned embedding artifact is cached. The build-time warm-up and the running server must agree on it.                                                |
-| `RAG_RATE_LIMIT_MAX_REQUESTS`    | no                    | `10`            | `src/config/rag-rate-limit-config.ts`  | optional                          | Bounded 1–60. `0`, negative, fractional, or out-of-range fails the deploy. There is no value that switches the limiter off.                                   |
-| `RAG_RATE_LIMIT_WINDOW_MS`       | no                    | `60000`         | `src/config/rag-rate-limit-config.ts`  | optional                          | Bounded 1000–600000.                                                                                                                                          |
-| `RAG_TEST_DATABASE_URL`          | local test suite only | —               | `tests/helpers/disposable-database.ts` | **NEVER**                         | See the explicit exclusion below.                                                                                                                             |
+| Variable                         | Required              | Default                          | Read where                                      | Set on Render?                             | Notes                                                                                                                                                                                                          |
+| -------------------------------- | --------------------- | -------------------------------- | ----------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                           | no                    | `3000`                           | `src/config/port-config.ts`                     | **No — Render injects it**                 | Validated when present: an integer from 1 to 65535. `0`, a negative, a fractional, or a non-numeric value exits non-zero. Empty is treated as unset.                                                           |
+| `MANUFACTUM_API_BASE_URL`        | yes                   | —                                | `src/config/manufactum-config.ts`               | yes                                        | Must parse as a URL. Test-environment base URL.                                                                                                                                                                |
+| `MANUFACTUM_API_KEY`             | yes                   | —                                | `src/config/manufactum-config.ts`               | yes, as a secret                           | **Secret.** Test credential only.                                                                                                                                                                              |
+| `MANUFACTUM_API_KEY_HEADER`      | yes                   | —                                | `src/config/manufactum-config.ts`               | yes                                        | Header name the key is sent under. Not itself secret, but paired.                                                                                                                                              |
+| `MANUFACTUM_API_TIMEOUT_MS`      | no                    | `8000`                           | `src/config/manufactum-config.ts`               | optional                                   | Set-but-malformed fails loudly; unset takes the default.                                                                                                                                                       |
+| `TRUST_PROXY`                    | no                    | off                              | `src/server.ts`                                 | **yes — `1`**                              | Express `trust proxy`. Render terminates TLS at its own proxy, so without this every caller shares one bucket and both limits become global. See `D-018`.                                                      |
+| `DATABASE_URL`                   | yes                   | —                                | `src/config/rag-retrieval-config.ts`            | yes, as a secret                           | **Secret** (carries a password). PostgreSQL + pgvector, for `POST /api/rag/query`. Presence is checked at startup; no connection is opened there.                                                              |
+| `DATABASE_SSL_MODE`              | no (but see §1a)      | driver default                   | `src/config/database-ssl.ts`                    | **yes — `verify-full`**                    | `disable`, `require`, or `verify-full`. Unset passes no `ssl` option, leaving the connection string's own `sslmode` to govern. An unknown value fails loudly.                                                  |
+| `DATABASE_CA_CERT_PATH`          | when `verify-full`    | —                                | `src/config/database-ssl.ts`                    | **yes — Render Secret File path**          | Path to the provider's PEM CA bundle. Read once at startup; missing, unreadable, or non-PEM fails the deploy. Contents are never logged.                                                                       |
+| `RAG_RETRIEVAL_MIN_SCORE`        | no                    | `0.8`                            | `src/config/rag-retrieval-config.ts`            | no                                         | Minimum cosine similarity. Set-but-malformed or outside `0..1` fails loudly; unset takes the provisional default.                                                                                              |
+| `RAG_QUERY_EMBEDDING_PROVIDER`   | no                    | `local`                          | `src/config/query-embedding-provider-config.ts` | **yes — `huggingface`**                    | Which runtime computes the **query** embedding: `local` or `huggingface`. Unset keeps the local runtime, which is the accepted baseline. An unknown value fails the deploy. See §1b.                           |
+| `HF_TOKEN`                       | when `huggingface`    | —                                | `src/config/query-embedding-provider-config.ts` | **yes, as a Render secret**                | **Secret.** Hugging Face fine-grained token with the "Make calls to Inference Providers" permission. Never logged, never placed in an error message, never committed. Missing or blank fails the deploy.       |
+| `HF_EMBEDDING_MODEL`             | no                    | `intfloat/multilingual-e5-small` | `src/config/query-embedding-provider-config.ts` | **yes — `intfloat/multilingual-e5-small`** | The `owner/name` repository serving query embeddings; validated as `owner/name` because it is interpolated into the request URL. Changing it changes the vector space. See §1b.                                |
+| `HF_EMBEDDING_TIMEOUT_MS`        | no                    | `10000`                          | `src/config/query-embedding-provider-config.ts` | **yes — `5000`**                           | Per-attempt request timeout, bounded 1000–30000. Set-but-malformed or out-of-range fails the deploy; unset takes the default. See §1b and `C-12`.                                                              |
+| `RAG_EMBEDDING_LOCAL_FILES_ONLY` | no                    | off                              | `src/config/rag-retrieval-config.ts`            | **no — see §1b**                           | `true` forces the embedding runtime to use only cached model files. Only after a warmed runtime cache is verified. **Local provider only** — it has no effect when `RAG_QUERY_EMBEDDING_PROVIDER=huggingface`. |
+| `TRANSFORMERS_CACHE`             | no                    | library default                  | `src/config/rag-retrieval-config.ts`            | **no — see §1b**                           | Where the pinned embedding artifact is cached. The build-time warm-up and the running server must agree on it. **Local provider only** — it has no effect when `RAG_QUERY_EMBEDDING_PROVIDER=huggingface`.     |
+| `RAG_RATE_LIMIT_MAX_REQUESTS`    | no                    | `10`                             | `src/config/rag-rate-limit-config.ts`           | optional                                   | Bounded 1–60. `0`, negative, fractional, or out-of-range fails the deploy. There is no value that switches the limiter off.                                                                                    |
+| `RAG_RATE_LIMIT_WINDOW_MS`       | no                    | `60000`                          | `src/config/rag-rate-limit-config.ts`           | optional                                   | Bounded 1000–600000.                                                                                                                                                                                           |
+| `RAG_TEST_DATABASE_URL`          | local test suite only | —                                | `tests/helpers/disposable-database.ts`          | **NEVER**                                  | See the explicit exclusion below.                                                                                                                                                                              |
 
 `NODE_ENV` is not read anywhere in the codebase. Setting it changes nothing today except Express's
 own internals; it is not a configuration switch for this backend.
@@ -74,6 +78,86 @@ downgrade this setting exists to prevent.
 No CA certificate is committed to this repository. Download the provider's bundle (Supabase: Project
 Settings → Database → SSL Configuration), add it as a **Render Secret File**, and point
 `DATABASE_CA_CERT_PATH` at the mount path Render reports (typically `/etc/secrets/<filename>`).
+
+### 1b. Why Render Free must use the Hugging Face query embedding provider
+
+§2b predicted, from local evidence, that a 512 MB instance was "very unlikely to survive the first RAG
+query". **That prediction has since been confirmed on Render Free: local ONNX query inference caused a
+JavaScript heap out-of-memory failure there.** It is no longer a risk to plan around; it is a measured
+property of that instance tier, and it is the entire reason this provider exists.
+
+The response is deliberately the smallest one available: **only query embedding generation moves off
+the instance.** Nothing else about retrieval changes.
+
+**What must be set on Render:**
+
+```
+RAG_QUERY_EMBEDDING_PROVIDER=huggingface
+HF_TOKEN=<Render secret>
+HF_EMBEDDING_MODEL=intfloat/multilingual-e5-small
+HF_EMBEDDING_TIMEOUT_MS=5000
+```
+
+**`HF_TOKEN` is a secret and is handled exactly like `MANUFACTUM_API_KEY` and `DATABASE_URL`.** Store
+it in Render's own secret store. It must never be committed, never appear in `.env.example`, never be
+placed in a build argument, and never be written to a log line. The provider sends it in one place —
+the `Authorization` request header — and the logger's closed field set cannot carry it, the request
+URL does not contain it, and no error message or thrown `cause` quotes it. The rules in _Secret
+handling_ below apply to it unchanged.
+
+**`RAG_EMBEDDING_PROFILE` is untouched.** It remains the existing frozen **local passage-embedding
+profile**: `Xenova/multilingual-e5-small` at the pinned immutable revision, int8-quantized ONNX, 384
+dimensions, `passage: ` / `query: ` recipe. The stored passage vectors were produced by that artifact
+and they stay that way.
+
+**The Hugging Face provider and model identity must not replace or modify `RAG_EMBEDDING_PROFILE`.**
+The remote model identifier, its provider name, and its served revision are _not_ written into the
+profile, are _not_ recorded against stored chunks, and are _not_ part of the SQL passage-embedding
+filter. A remote query vector is a **query against the local space**, not a replacement for it —
+admitting the remote identity to the filter would mean comparing the local space against nothing.
+
+**Passage embeddings are not regenerated.** No chunk is re-embedded, no version is staged or
+activated, and no ingestion runs as part of this change. The corpus is the same twelve active
+`mein-konto` v1 chunks it was before.
+
+**Only query embedding generation is remote.** Retrieval SQL, the pgvector query, ranking,
+`maxChunks = 3`, the `0.8` threshold, the evidence projection, and both the request and response
+contracts are unchanged.
+
+**Failure behaviour, which a deployment must plan around:**
+
+- **One retry exists**, and only for transient failures: a timeout, or HTTP `500`, `502`, `503`,
+  `504`. The retry waits 250 ms (exponential backoff, one term) before the second attempt.
+- **`401`, `403`, `400` and `429` are not retried.** A credential does not become valid 250 ms later,
+  a rejected request is rejected identically, and an immediate second call against a rate limit makes
+  it worse.
+- **There is no local fallback.** A failing hosted provider is an error, not a reason to load the
+  118 MB model on the instance that was configured for the hosted provider precisely because it
+  cannot hold that model. A fallback there would replace a clear `500` with an OOM restart.
+- **A fully failing request may take approximately two timeout windows plus the retry backoff** — at
+  `HF_EMBEDDING_TIMEOUT_MS=5000` that is roughly **10.25 seconds** before the caller sees
+  `INTERNAL_ERROR` / HTTP `500`. §C-5 already notes that total request duration is unbounded; this is
+  the first configured path with a knowable worst case, and a voice caller experiences the total.
+
+**Latency and availability on Render are unmeasured.** Every latency figure recorded for this
+provider — 782 ms cold, 266 ms warm p50, 888 ms warm maximum over 191 calls — was measured **from a
+development machine over a residential path**, not from Render, and it bounds nothing about the
+deployment. Provider availability across a demo window is likewise unobserved. **Both must be measured
+after deployment** (§5b, smoke tests 10 and 11) before any claim is made about them, and before
+`HF_EMBEDDING_TIMEOUT_MS` is tuned in either direction.
+
+**Retrieval equivalence is measured, not assumed.** The hosted provider was compared against the local
+one across the frozen 96-query development dataset: 96/96 accept/reject agreement, no threshold flips,
+no new false accepts, no new false rejects. The production provider reproduces that recorded arm on
+96/96 queries — identical top-3 chunk keys, identical order, identical scores to six decimals. See
+`rag-remote-query-embedding-evaluation-report.md` and its results artifact, both committed alongside
+the scripts that produce them.
+
+**One accepted limitation carries over: the served remote revision is unpinnable.** The endpoint
+returns no `X-Repo-Commit` header, so there is no way to detect the provider serving different weights
+between runs. Every equivalence result above is valid for the weights served during that run and
+nothing more. This is why smoke test 10's six-decimal score comparison matters more, not less, under
+this provider.
 
 ### Secret handling
 
@@ -222,6 +306,16 @@ to survive the first RAG query, and the failure mode would be an OOM kill of the
 not a `500`, but a restart, on the first question anyone asks. Provision an instance with **at least
 2 GB** and treat anything smaller as untested. Anna must confirm the actual figure from Render's own
 metrics after the first successful RAG query; that observation replaces this estimate.
+
+**Confirmed, and resolved for the query side.** The risk above was borne out: local ONNX query
+inference on Render Free produced a **JavaScript heap out-of-memory failure**. It is now a measured
+fact, not an estimate. The response is `RAG_QUERY_EMBEDDING_PROVIDER=huggingface` (§1b), which moves
+**only** query embedding generation off the instance and leaves the passage embeddings, the pinned
+profile, and every retrieval parameter untouched. Everything in the rest of §2b — the ~844 MiB step,
+the native `onnxruntime-node` dependency, the warm-up step, and the model cache — describes the
+**local** provider and applies only when it is selected. Under the hosted provider the instance never
+loads the artifact, so it needs neither the memory headroom nor the writable model cache, and the
+2 GB provisioning floor above does not apply to the query path.
 
 ### Native dependencies
 
@@ -539,6 +633,18 @@ different revision, or different chunks.
   call, the build-time warm-up did not survive into the runtime filesystem — revisit
   `TRANSFORMERS_CACHE` in §2b.
 
+**Under `RAG_QUERY_EMBEDDING_PROVIDER=huggingface` (§1b), read this step as follows.** The
+six-decimal score expectation is unchanged and is the whole point of the step: the hosted provider was
+measured to reproduce the local scores to six decimals across all 96 frozen queries, so a difference
+here still means a different artifact, a different revision, or different chunks — and because the
+served remote revision is unpinnable, this is the only place a silent weight change would show up. The
+model-load caveats do not apply: no artifact is loaded on the instance, so there is no cache to
+survive into the runtime filesystem and no first-query download. A `500` / `INTERNAL_ERROR` now has
+two additional causes worth checking in the deployed logs before the database — the structured
+warning `rag_query_embedding_provider_failed` (with `upstreamStatus` and `errorCode`) for a refused
+credential or a provider outage, and `rag_query_embedding_provider_selected` at startup, which names
+the runtime the release actually chose.
+
 **11. The same query twice, for the model-load boundary**
 
 ```bash
@@ -549,6 +655,15 @@ time curl -s -o /dev/null -X POST "$BASE/api/rag/query" -H "content-type: applic
 Expect: both `200`; the second materially faster than the first if the first call in step 10 was the
 one that loaded the model. Record both numbers — they are the deployed equivalent of the local 2156 ms
 / 81 ms and the input to any later decision about `RAG_EMBEDDING_LOCAL_FILES_ONLY`.
+
+**Under the hosted provider this step changes meaning and becomes required, not optional.** There is
+no model-load boundary, so the two calls should be broadly similar; what the step now measures is
+**Render-to-Hugging-Face latency**, which is entirely unmeasured (§1b) and which the configured
+`HF_EMBEDDING_TIMEOUT_MS=5000` is a bet against. Run it more than twice and record the spread, not
+just the two numbers. Two figures matter for the deployment: the **slowest** observed call, against
+the 5000 ms per-attempt bound, and whether any call fails at all. Availability across a demo window is
+equally unobserved — a `429` or a `503` from the provider is a `500` to the caller, with no fallback
+behind it. Neither figure may be claimed until it has been observed from Render itself; see `C-12`.
 
 **12. A question outside the knowledge base is `not_found`, not an error and not an invention**
 
@@ -702,6 +817,16 @@ validates the configuration at startup and exits non-zero when it is missing or 
 misconfigured release fails at deploy time instead of reporting healthy. `/health` itself is
 unchanged and remains a pure liveness probe; smoke test 3 is still the check that proves upstream
 credentials actually work. See `D-018`.
+
+**C-12. The configured query-embedding timeout is below the provider's published latency.**
+`HF_EMBEDDING_TIMEOUT_MS=5000` is the accepted deployment value. Hugging Face's **published** latency
+for this model is **5100 ms** — above the bound. The measured figures are far below it (782 ms cold,
+888 ms warm maximum over 191 calls), which is why 5000 ms is a reasonable bet, but those figures come
+from a development machine and not from Render. If Render's path to the provider is slower than the
+development path, or a cold provider start lands on the published figure, the first attempt times out,
+the single retry runs, and the caller waits roughly 10.25 s for a `500`. This is named, not resolved:
+smoke test 11 is the measurement that settles it, and no tuning should happen before that number
+exists. The code default remains `10000` and is unchanged — only the Render environment sets `5000`.
 
 ---
 

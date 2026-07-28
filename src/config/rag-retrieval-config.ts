@@ -4,6 +4,10 @@ import {
   type DatabaseSslConfig,
   type ReadCertificate,
 } from "./database-ssl.js";
+import {
+  resolveQueryEmbeddingProviderConfig,
+  type QueryEmbeddingProviderConfig,
+} from "./query-embedding-provider-config.js";
 
 /**
  * Runtime configuration for RAG retrieval behind `POST /api/rag/query`.
@@ -49,6 +53,12 @@ const configSchema = z.object({
 export type RagRetrievalConfig = z.infer<typeof configSchema> & {
   /** How the connection to `databaseUrl` is protected. See `database-ssl.ts`. */
   ssl: DatabaseSslConfig;
+  /**
+   * Which runtime turns the caller's question into a query vector. See
+   * `query-embedding-provider-config.ts`. It selects the **query** side only; the stored passage
+   * embeddings, the active version, the ranking, and the threshold are unaffected by it.
+   */
+  queryEmbedding: QueryEmbeddingProviderConfig;
 };
 
 /**
@@ -67,6 +77,12 @@ export function loadRagRetrievalConfig(
   // loop twice. Reading the CA file here is deliberate: it is what makes an unreadable certificate a
   // failed startup rather than a failed connection inside the first request.
   const ssl = resolveDatabaseSslConfig(env, readCertificate);
+
+  // Resolved here, alongside the transport, for the same reason: a release that names a provider
+  // which does not exist, or asks for the hosted one without a credential, must fail the deploy
+  // rather than answer every retrieval call with an INTERNAL_ERROR. It reads variables and nothing
+  // else — no endpoint is contacted and no model is loaded.
+  const queryEmbedding = resolveQueryEmbeddingProviderConfig(env);
 
   const result = configSchema.safeParse({
     databaseUrl: nonEmpty(env.DATABASE_URL),
@@ -94,6 +110,7 @@ export function loadRagRetrievalConfig(
             (issue) => variables[String(issue.path[0])] ?? "unknown variable",
           )),
       ...(ssl.ok ? [] : [ssl.message]),
+      ...(queryEmbedding.ok ? [] : [queryEmbedding.message]),
     ]),
   ];
 
@@ -101,13 +118,13 @@ export function loadRagRetrievalConfig(
     throw new Error(`Invalid or missing RAG retrieval configuration: ${missing.join(", ")}`);
   }
 
-  if (!result.success || !ssl.ok) {
-    // Unreachable: `missing` is empty exactly when both succeeded. Present so the narrowing below is
-    // proved rather than asserted.
+  if (!result.success || !ssl.ok || !queryEmbedding.ok) {
+    // Unreachable: `missing` is empty exactly when all three succeeded. Present so the narrowing
+    // below is proved rather than asserted.
     throw new Error("Invalid or missing RAG retrieval configuration.");
   }
 
-  return { ...result.data, ssl: ssl.config };
+  return { ...result.data, ssl: ssl.config, queryEmbedding: queryEmbedding.config };
 }
 
 function nonEmpty(value: string | undefined): string | undefined {

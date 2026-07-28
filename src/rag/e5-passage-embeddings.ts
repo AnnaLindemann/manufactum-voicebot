@@ -7,7 +7,13 @@ export class RagEmbeddingError extends Error {
       | "RAG_EMBEDDING_MODEL_LOAD_FAILED"
       | "RAG_EMBEDDING_TOKENIZATION_FAILED"
       | "RAG_EMBEDDING_INFERENCE_FAILED"
-      | "RAG_EMBEDDING_INVALID_OUTPUT",
+      | "RAG_EMBEDDING_INVALID_OUTPUT"
+      // The two failure modes a hosted query-embedding runtime has and a local one does not: the
+      // call itself failing, and the credential being refused. `RAG_EMBEDDING_INVALID_OUTPUT` is
+      // shared with the local runtime on purpose — a vector of the wrong width, a non-finite
+      // element, or a lost normalization is the same defect wherever it was produced.
+      | "RAG_EMBEDDING_PROVIDER_REQUEST_FAILED"
+      | "RAG_EMBEDDING_PROVIDER_AUTH_FAILED",
     technicalMessage: string,
     readonly retryable: boolean,
     cause?: unknown,

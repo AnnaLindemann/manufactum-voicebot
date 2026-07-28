@@ -79,3 +79,59 @@ describe("loadRagRetrievalConfig transport configuration", () => {
     expect(message).not.toContain("/etc/secrets/");
   });
 });
+
+/**
+ * The query-embedding provider is resolved as part of the retrieval configuration, so that the
+ * existing startup check validates it without a second entry point. Selection semantics themselves
+ * live in `query-embedding-provider-config.test.ts`; these cases cover only the integration.
+ */
+describe("loadRagRetrievalConfig query embedding provider", () => {
+  it("carries the local runtime when nothing selects a provider", () => {
+    const config = loadRagRetrievalConfig({ DATABASE_URL });
+
+    expect(config.queryEmbedding).toEqual({ provider: "local" });
+  });
+
+  it("carries the resolved hosted provider through to the dependency builder", () => {
+    const config = loadRagRetrievalConfig({
+      DATABASE_URL,
+      RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+      HF_TOKEN: "hf_retrieval-config-test-token-never-real",
+      HF_EMBEDDING_TIMEOUT_MS: "5000",
+    });
+
+    expect(config.queryEmbedding).toMatchObject({ provider: "huggingface", timeoutMs: 5000 });
+  });
+
+  it("fails the load for an unknown provider instead of falling back to one", () => {
+    expect(() =>
+      loadRagRetrievalConfig({ DATABASE_URL, RAG_QUERY_EMBEDDING_PROVIDER: "openai" }),
+    ).toThrow(/RAG_QUERY_EMBEDDING_PROVIDER/);
+  });
+
+  it("reports a missing credential alongside a missing connection string", () => {
+    // Otherwise an operator fixes the token, redeploys, and only then learns the connection string
+    // was missing too.
+    expect(() => loadRagRetrievalConfig({ RAG_QUERY_EMBEDDING_PROVIDER: "huggingface" })).toThrow(
+      /DATABASE_URL.*HF_TOKEN|HF_TOKEN.*DATABASE_URL/s,
+    );
+  });
+
+  it("never includes the credential in a failure message", () => {
+    let message = "";
+
+    try {
+      loadRagRetrievalConfig({
+        DATABASE_URL,
+        RAG_QUERY_EMBEDDING_PROVIDER: "huggingface",
+        HF_TOKEN: "hf_retrieval-config-secret-never-real",
+        HF_EMBEDDING_TIMEOUT_MS: "sofort",
+      });
+    } catch (error) {
+      message = error instanceof Error ? error.message : "";
+    }
+
+    expect(message).toContain("HF_EMBEDDING_TIMEOUT_MS");
+    expect(message).not.toContain("hf_retrieval-config-secret-never-real");
+  });
+});
